@@ -1,0 +1,87 @@
+'use client'
+
+import { useState } from 'react'
+import { Calendar, dateFnsLocalizer } from 'react-big-calendar'
+import { format, parse, startOfWeek, getDay } from 'date-fns'
+import { enUS } from 'date-fns/locale'
+import { useRouter } from 'next/navigation'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
+import { BookingDrawer } from '@/components/admin/BookingDrawer'
+
+export interface BookingEvent {
+  id: string
+  title: string // band_name ?? customer_name
+  start: Date
+  end: Date
+  status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
+  confirmation_code: string
+  customer_name: string
+  customer_email: string
+  customer_phone: string
+  band_name: string | null
+  deposit_amount: number
+  amount_paid: number
+  total_amount: number
+  source: 'online' | 'onsite' | 'walk_in'
+}
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales: { 'en-US': enUS },
+})
+
+const STATUS_STYLES: Record<
+  BookingEvent['status'],
+  React.CSSProperties
+> = {
+  confirmed: { backgroundColor: '#0B0B0C', color: '#FAFAF8' },
+  pending: {
+    backgroundColor: 'transparent',
+    color: '#0B0B0C',
+    border: '1px solid #6B6B6B',
+  },
+  completed: { backgroundColor: '#3D3D3D', color: '#FAFAF8' },
+  cancelled: { backgroundColor: '#E5E5E5', color: '#9A9A9A' },
+}
+
+function eventPropGetter(event: BookingEvent) {
+  return { style: STATUS_STYLES[event.status] ?? {} }
+}
+
+export function BookingsCalendar({
+  bookings,
+}: {
+  bookings: BookingEvent[]
+}) {
+  const router = useRouter()
+  const [selected, setSelected] = useState<BookingEvent | null>(null)
+
+  return (
+    <div className="h-full">
+      <Calendar
+        localizer={localizer}
+        events={bookings}
+        defaultView="week"
+        views={['week', 'month', 'day']}
+        eventPropGetter={eventPropGetter}
+        onSelectEvent={(event) => setSelected(event as BookingEvent)}
+        style={{ height: 700 }}
+        startAccessor="start"
+        endAccessor="end"
+      />
+      {selected && (
+        <BookingDrawer
+          booking={selected}
+          onClose={() => setSelected(null)}
+          onMutated={() => {
+            setSelected(null)
+            router.refresh()
+          }}
+        />
+      )}
+    </div>
+  )
+}

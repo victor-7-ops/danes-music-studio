@@ -1,0 +1,38 @@
+import { createClient } from '@/lib/supabase/server'
+import { BookingsCalendar, type BookingEvent } from '@/components/admin/BookingsCalendar'
+
+export default async function CalendarPage() {
+  const supabase = await createClient()
+
+  const { data: bookings } = await supabase
+    .from('bookings')
+    .select(
+      'id, confirmation_code, band_name, customer_name, customer_phone, customer_email, start_at, end_at, status, deposit_amount, amount_paid, total_amount, source'
+    )
+    .neq('status', 'cancelled')
+    .order('start_at')
+
+  const events: BookingEvent[] = (bookings ?? []).map((b) => ({
+    id: b.id,
+    confirmation_code: b.confirmation_code,
+    title: b.band_name ?? b.customer_name,
+    start: new Date(b.start_at),
+    end: new Date(b.end_at),
+    status: b.status as BookingEvent['status'],
+    customer_name: b.customer_name,
+    customer_email: b.customer_email,
+    customer_phone: b.customer_phone,
+    band_name: b.band_name,
+    deposit_amount: b.deposit_amount,
+    amount_paid: b.amount_paid,
+    total_amount: b.total_amount,
+    source: b.source as BookingEvent['source'],
+  }))
+
+  return (
+    <div className="p-6 h-screen">
+      <h1 className="font-display text-3xl uppercase tracking-wide mb-6">Calendar</h1>
+      <BookingsCalendar bookings={events} />
+    </div>
+  )
+}
