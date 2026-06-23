@@ -116,6 +116,74 @@ export type Database = {
           },
         ]
       }
+      blocked_slots: {
+        Row: {
+          created_at: string
+          end_at: string
+          id: string
+          reason: string | null
+          start_at: string
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          end_at: string
+          id?: string
+          reason?: string | null
+          start_at: string
+          type: string
+        }
+        Update: {
+          created_at?: string
+          end_at?: string
+          id?: string
+          reason?: string | null
+          start_at?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      payments: {
+        Row: {
+          amount: number
+          booking_id: string
+          created_at: string
+          id: string
+          kind: string
+          provider: string
+          provider_ref: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+        }
+        Insert: {
+          amount: number
+          booking_id: string
+          created_at?: string
+          id?: string
+          kind: string
+          provider?: string
+          provider_ref?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+        }
+        Update: {
+          amount?: number
+          booking_id?: string
+          created_at?: string
+          id?: string
+          kind?: string
+          provider?: string
+          provider_ref?: string | null
+          status?: Database["public"]["Enums"]["payment_status"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_types: {
         Row: {
           active: boolean
@@ -140,6 +208,60 @@ export type Database = {
           id?: string
           name?: string
           rate_per_hour?: number
+        }
+        Relationships: []
+      }
+      settings: {
+        Row: {
+          buffer_minutes: number
+          default_deposit_pct: number
+          hold_window_minutes: number
+          id: string
+          min_booking_minutes: number
+          operating_close: string
+          operating_open: string
+        }
+        Insert: {
+          buffer_minutes?: number
+          default_deposit_pct?: number
+          hold_window_minutes?: number
+          id?: string
+          min_booking_minutes?: number
+          operating_close?: string
+          operating_open?: string
+        }
+        Update: {
+          buffer_minutes?: number
+          default_deposit_pct?: number
+          hold_window_minutes?: number
+          id?: string
+          min_booking_minutes?: number
+          operating_close?: string
+          operating_open?: string
+        }
+        Relationships: []
+      }
+      special_hours: {
+        Row: {
+          close_time: string | null
+          closed: boolean
+          date: string
+          id: string
+          open_time: string | null
+        }
+        Insert: {
+          close_time?: string | null
+          closed?: boolean
+          date: string
+          id?: string
+          open_time?: string | null
+        }
+        Update: {
+          close_time?: string | null
+          closed?: boolean
+          date?: string
+          id?: string
+          open_time?: string | null
         }
         Relationships: []
       }
