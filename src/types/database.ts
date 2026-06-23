@@ -39,6 +39,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          amount_paid: number
+          band_name: string | null
+          confirmation_code: string
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          deposit_amount: number
+          end_at: string
+          hold_expires_at: string | null
+          id: string
+          notes: string | null
+          payment_method: Database["public"]["Enums"]["payment_method_type"]
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          service_type_id: string
+          source: Database["public"]["Enums"]["booking_source"]
+          start_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
+          updated_at: string
+        }
+        Insert: {
+          amount_paid?: number
+          band_name?: string | null
+          confirmation_code: string
+          created_at?: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          deposit_amount: number
+          end_at: string
+          hold_expires_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method_type"]
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          service_type_id: string
+          source?: Database["public"]["Enums"]["booking_source"]
+          start_at: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
+          updated_at?: string
+        }
+        Update: {
+          amount_paid?: number
+          band_name?: string | null
+          confirmation_code?: string
+          created_at?: string
+          customer_email?: string
+          customer_name?: string
+          customer_phone?: string
+          deposit_amount?: number
+          end_at?: string
+          hold_expires_at?: string | null
+          id?: string
+          notes?: string | null
+          payment_method?: Database["public"]["Enums"]["payment_method_type"]
+          payment_status?: Database["public"]["Enums"]["payment_status"]
+          service_type_id?: string
+          source?: Database["public"]["Enums"]["booking_source"]
+          start_at?: string
+          status?: Database["public"]["Enums"]["booking_status"]
+          total_amount?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       service_types: {
         Row: {
           active: boolean
@@ -74,7 +151,10 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      booking_source: "online" | "onsite" | "walk_in"
+      booking_status: "pending" | "confirmed" | "completed" | "cancelled"
+      payment_method_type: "full" | "deposit" | "none"
+      payment_status: "pending" | "paid" | "failed" | "refunded"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -204,6 +284,11 @@ export const Constants = {
     Enums: {},
   },
   public: {
-    Enums: {},
+    Enums: {
+      booking_source: ["online", "onsite", "walk_in"],
+      booking_status: ["pending", "confirmed", "completed", "cancelled"],
+      payment_method_type: ["full", "deposit", "none"],
+      payment_status: ["pending", "paid", "failed", "refunded"],
+    },
   },
 } as const
