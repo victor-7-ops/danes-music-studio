@@ -1,0 +1,29 @@
+FROM node:20-alpine AS dev
+
+RUN corepack enable
+
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+WORKDIR /app
+
+# Layer 1: lockfile only — cache busts only when dependencies change
+COPY pnpm-lock.yaml ./
+
+# Layer 2: fetch packages into pnpm store (reads lockfile, ignores source)
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm fetch
+
+# Layer 3: package manifest
+COPY package.json ./
+
+# Layer 4: install from local store (no network, fast)
+RUN --mount=type=cache,target=/pnpm/store \
+    pnpm install --frozen-lockfile --offline
+
+# Layer 5: copy source (invalidates most frequently — always last)
+COPY . .
+
+EXPOSE 3000
+
+CMD ["pnpm", "dev"]
