@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { DmsHero } from '@/components/DmsHero'
 
 export default function Page() {
@@ -21,6 +22,22 @@ export default function Page() {
       <p className="font-sans text-sm font-medium uppercase tracking-[0.09em] text-muted text-center">
         ₱350 / hour &middot; Daily 9 AM – 10 PM
       </p>
+
+      <a
+        href="https://maps.app.goo.gl/aWf4SFa3uhcY75Pe9"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-sans text-sm text-muted underline underline-offset-2 mt-4"
+      >
+        Pardo, Cebu City
+      </a>
+
+      <Link
+        href="/book"
+        className="inline-block mt-8 px-10 py-4 bg-ink text-white font-sans text-xs font-medium uppercase tracking-[0.1em] w-full text-center sm:w-auto"
+      >
+        Book Now
+      </Link>
 
     </main>
   )
