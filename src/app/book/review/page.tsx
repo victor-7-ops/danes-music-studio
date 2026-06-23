@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import ReviewSummary from '@/components/booking/ReviewSummary'
+import ReviewPage from '@/components/booking/ReviewPage'
 
 interface PageProps {
   searchParams: Promise<{
@@ -14,7 +14,7 @@ interface PageProps {
   }>
 }
 
-export default async function ReviewPage({ searchParams }: PageProps) {
+export default async function ReviewServerPage({ searchParams }: PageProps) {
   const params = await searchParams
   const { date, start, end, payment, name, email, phone, band } = params
 
@@ -33,7 +33,7 @@ export default async function ReviewPage({ searchParams }: PageProps) {
 
   return (
     <div className="min-h-screen bg-bg px-6 py-16">
-      <ReviewSummary
+      <ReviewPage
         date={date}
         start={start}
         end={end}
@@ -42,7 +42,6 @@ export default async function ReviewPage({ searchParams }: PageProps) {
         email={decodedEmail}
         phone={decodedPhone}
         bandName={bandName}
-        onConfirm={async () => {}}
       />
     </div>
   )
