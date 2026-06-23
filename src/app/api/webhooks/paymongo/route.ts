@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import type { TablesInsert } from '@/types/database'
+import { sendConfirmEmail } from '@/lib/emails/confirm'
 
 export const runtime = 'nodejs'
 
@@ -97,7 +98,7 @@ export async function POST(request: Request) {
     // Look up booking by confirmation code (= referenceNumber)
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .select('id, deposit_amount, total_amount, payment_method, status')
+      .select('id, deposit_amount, total_amount, payment_method, status, customer_email, customer_name, band_name, start_at, end_at, confirmation_code')
       .eq('confirmation_code', referenceNumber)
       .single()
 
@@ -119,6 +120,11 @@ export async function POST(request: Request) {
       .from('bookings')
       .update({ status: 'confirmed', amount_paid: amountPaid })
       .eq('id', booking.id)
+
+    // Fire-and-forget confirm email — never await (D-06: must not block 200 response)
+    void sendConfirmEmail({ ...booking, amount_paid: amountPaid }).catch((err: unknown) => {
+      console.error('[email] confirm failed', err)
+    })
 
     // Insert payment audit row
     const paymentRow: TablesInsert<'payments'> = {
