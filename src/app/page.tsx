@@ -1,25 +1,25 @@
 import Image from 'next/image'
-import { DrumstickDivider } from '@/components/DrumstickDivider'
+import { SoundWave } from '@/components/SoundWave'
 
 export default function Page() {
   return (
-    <main className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16">
-      {/* DANES roundel — centered top */}
-      <div className="mb-8">
+    <main className="relative min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16">
+      {/* Animated soundwave — decorative, left side of hero */}
+      <SoundWave />
+
+      {/* DMS logo — transparent, no circle background */}
+      <div className="mb-6">
         <Image
-          src="/danes-roundel.jpg"
+          src="/dms.png"
           alt="Danes Music Studio"
           width={120}
           height={120}
-          className="rounded-full"
           priority
         />
       </div>
 
-      {/* Drumstick divider */}
-      <div className="w-24 mb-8">
-        <DrumstickDivider />
-      </div>
+      {/* Thin divider below logo */}
+      <div className="mb-8" style={{ width: 60, height: 1, background: 'rgba(11,11,12,0.15)' }} />
 
       {/* Headline — Big Shoulders Display via font-display utility */}
       <h1 className="font-display text-5xl sm:text-7xl uppercase tracking-tight text-ink text-center mb-4">
