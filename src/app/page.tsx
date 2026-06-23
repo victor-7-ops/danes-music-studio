@@ -6,35 +6,44 @@ export default function Page() {
   return (
     <main className="relative min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16">
 
-      {/* DMS logo — transparent, no container background */}
+      {/* DMS logo */}
       <div className="mb-6 relative" style={{ width: 320, height: 209 }}>
+        {/* mix-blend-mode:multiply removes white PNG background on #FAFAF8 */}
         <Image
           src="/dms.png"
           alt="Danes Music Studio"
           width={320}
           height={209}
           priority
-          style={{ display: 'block' }}
+          style={{ display: 'block', mixBlendMode: 'multiply' }}
         />
 
-        {/*
-          Soundwave overlay — covers the waveform bars in the left portion of the logo.
-          The bars in dms.png occupy roughly x:46–108px, centered vertically at ~88–121px
-          at the 320×209 rendered size. mix-blend-mode:multiply keeps them invisible
-          on the light #FAFAF8 background and dark where the logo bars are dark.
-        */}
+        {/* Mask: hides original static soundwave bars in the PNG */}
         <div
           aria-hidden="true"
           style={{
             position: 'absolute',
             top: '50%',
-            left: 46,
+            left: 38,
+            transform: 'translateY(-50%)',
+            width: 82,
+            height: 70,
+            background: '#FAFAF8',
+          }}
+        />
+
+        {/* Animated bars overlay — sits on top of mask, same position as original bars */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: '50%',
+            left: 42,
             transform: 'translateY(-50%)',
             display: 'flex',
             alignItems: 'center',
-            gap: 4,
+            gap: 3,
             height: 56,
-            mixBlendMode: 'multiply',
           }}
         >
           {[
