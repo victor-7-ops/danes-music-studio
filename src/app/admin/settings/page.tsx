@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { updateSettings } from '@/lib/actions/admin/updateSettings'
 import { connectGoogleCalendar } from '@/lib/actions/admin/connectGoogleCalendar'
 import { disconnectGoogleCalendar } from '@/lib/actions/admin/disconnectGoogleCalendar'
+import { syncGoogleCalendar } from '@/lib/actions/admin/syncGoogleCalendar'
 
 interface FormState {
   operatingOpen: string
@@ -36,6 +37,7 @@ export default function SettingsPage() {
   const [gcalConnected, setGcalConnected] = useState(false)
   const [gcalLoading, setGcalLoading] = useState(false)
   const [gcalFeedback, setGcalFeedback] = useState<string | null>(null)
+  const [syncResult, setSyncResult] = useState<string | null>(null)
 
   const searchParams = useSearchParams()
 
@@ -99,6 +101,20 @@ export default function SettingsPage() {
     setGcalLoading(true)
     await connectGoogleCalendar()
     // redirect() from the action navigates away — no need to reset loading
+  }
+
+  async function handleSync() {
+    setGcalLoading(true)
+    setSyncResult(null)
+    const result = await syncGoogleCalendar()
+    if (result.success) {
+      setSyncResult(
+        `Synced: ${result.inserted ?? 0} added, ${result.deleted ?? 0} removed, ${result.conflicts ?? 0} conflict(s) skipped.`
+      )
+    } else {
+      setSyncResult(result.error ?? 'Sync failed.')
+    }
+    setGcalLoading(false)
   }
 
   async function handleDisconnect() {
@@ -277,6 +293,17 @@ export default function SettingsPage() {
               >
                 {gcalLoading ? 'Disconnecting...' : 'Disconnect'}
               </button>
+              <button
+                type="button"
+                onClick={handleSync}
+                disabled={gcalLoading}
+                className="bg-ink text-bg px-4 py-2 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
+              >
+                {gcalLoading ? 'Syncing...' : 'Sync Now'}
+              </button>
+              {syncResult && (
+                <p className="font-sans text-xs text-muted">{syncResult}</p>
+              )}
             </div>
           ) : (
             <button
