@@ -68,7 +68,7 @@ export default function DetailsForm({ date, start, end, payment }: DetailsFormPr
 
   const labelClass = 'font-sans text-xs uppercase tracking-widest text-muted mb-1 block'
   const inputClass =
-    'border border-border bg-surface text-ink font-sans text-base p-3 w-full rounded-none focus:outline-none focus:border-ink'
+    'border border-border bg-surface text-ink font-sans text-base p-3 w-full rounded-none focus:outline-none focus:border-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2'
   const errorClass = 'font-sans text-xs text-red-600 mt-1'
 
   return (
@@ -171,13 +171,13 @@ export default function DetailsForm({ date, start, end, payment }: DetailsFormPr
         <div className="flex items-center justify-between pt-2">
           <Link
             href={`/book/slots?date=${date}`}
-            className="font-sans text-sm text-muted hover:text-ink underline"
+            className="font-sans text-sm text-muted hover:text-ink underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
           >
             ← Change slots
           </Link>
           <button
             type="submit"
-            className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity"
+            className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
           >
             Review Booking →
           </button>

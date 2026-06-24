@@ -52,7 +52,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
 
         <Link
           href="/"
-          className="font-sans text-sm text-muted underline"
+          className="font-sans text-sm text-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         >
           Back to home
         </Link>
@@ -82,14 +82,14 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
 
         <Link
           href={`/book/pay?code=${code}`}
-          className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity mb-6 inline-block"
+          className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity motion-reduce:transition-none mb-6 inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         >
           Try Payment Again
         </Link>
 
         <Link
           href="/"
-          className="font-sans text-sm text-muted underline"
+          className="font-sans text-sm text-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         >
           Back to home
         </Link>
@@ -122,7 +122,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
 
       <Link
         href={`/book/pay?code=${code}`}
-        className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity mb-6 inline-block"
+        className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity motion-reduce:transition-none mb-6 inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
       >
         Continue to Payment →
       </Link>

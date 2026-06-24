@@ -144,7 +144,7 @@ export default function ReviewSummary({
           id="terms"
           checked={agreed}
           onChange={e => setAgreed(e.target.checked)}
-          className="mt-1 cursor-pointer"
+          className="mt-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         />
         <label htmlFor="terms" className="font-sans text-sm text-ink cursor-pointer">
           I confirm these details are correct and agree to the studio&apos;s booking terms.
@@ -154,14 +154,14 @@ export default function ReviewSummary({
       <div className="mt-6 flex items-center justify-between">
         <Link
           href={backHref}
-          className="font-sans text-sm text-muted hover:text-ink underline"
+          className="font-sans text-sm text-muted hover:text-ink underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         >
           ← Edit details
         </Link>
         <button
           onClick={handleConfirm}
           disabled={!agreed || pending}
-          className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+          className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity motion-reduce:transition-none disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         >
           {pending ? 'Please wait…' : 'Confirm Booking'}
         </button>
