@@ -52,7 +52,7 @@ export default function SlotGrid({ slots, allSlotHours, onConfirm }: SlotGridPro
 
   return (
     <div>
-      <div className="grid grid-cols-4 gap-2 mb-4">
+      <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
         {allSlotHours.map(h => {
           const available = slots.some(
             s => new Date(s.startAt).getUTCHours() + 8 === h
@@ -73,7 +73,7 @@ export default function SlotGrid({ slots, allSlotHours, onConfirm }: SlotGridPro
                 key={h}
                 aria-disabled="true"
                 disabled
-                className="border border-border bg-bg text-muted cursor-not-allowed line-through px-2 py-3 text-sm font-medium"
+                className="border border-border bg-bg text-muted cursor-not-allowed line-through px-2 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
               >
                 {label}
               </button>
@@ -86,8 +86,8 @@ export default function SlotGrid({ slots, allSlotHours, onConfirm }: SlotGridPro
               onClick={() => handleSlotClick(h)}
               className={
                 selected
-                  ? 'bg-ink text-white border border-ink px-2 py-3 text-sm font-medium cursor-pointer'
-                  : 'border border-border bg-surface text-ink cursor-pointer hover:border-ink px-2 py-3 text-sm font-medium'
+                  ? 'bg-ink text-white border border-ink px-2 py-3 text-sm font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2'
+                  : 'border border-border bg-surface text-ink cursor-pointer hover:border-ink px-2 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2'
               }
             >
               {label}
@@ -116,8 +116,8 @@ export default function SlotGrid({ slots, allSlotHours, onConfirm }: SlotGridPro
               onClick={() => setPaymentType('full')}
               className={
                 paymentType === 'full'
-                  ? 'flex-1 bg-ink text-white px-4 py-3 text-sm font-medium'
-                  : 'flex-1 border border-border text-ink px-4 py-3 text-sm font-medium'
+                  ? 'flex-1 bg-ink text-white px-4 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2'
+                  : 'flex-1 border border-border text-ink px-4 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2'
               }
             >
               Full payment
@@ -126,8 +126,8 @@ export default function SlotGrid({ slots, allSlotHours, onConfirm }: SlotGridPro
               onClick={() => setPaymentType('deposit')}
               className={
                 paymentType === 'deposit'
-                  ? 'flex-1 bg-ink text-white px-4 py-3 text-sm font-medium'
-                  : 'flex-1 border border-border text-ink px-4 py-3 text-sm font-medium'
+                  ? 'flex-1 bg-ink text-white px-4 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2'
+                  : 'flex-1 border border-border text-ink px-4 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2'
               }
             >
               50% deposit
@@ -139,7 +139,7 @@ export default function SlotGrid({ slots, allSlotHours, onConfirm }: SlotGridPro
       <button
         onClick={handleConfirm}
         disabled={selectedHours.length === 0}
-        className="w-full bg-ink text-white py-4 text-xs font-medium tracking-widest uppercase disabled:bg-border disabled:cursor-not-allowed"
+        className="w-full bg-ink text-white py-4 text-xs font-medium tracking-widest uppercase disabled:bg-border disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
       >
         Continue
       </button>
