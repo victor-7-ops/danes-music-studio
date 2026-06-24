@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { pushGcalEvent } from '@/lib/gcal/pushSync'
 
 export interface CreateWalkInParams {
   date: string      // "YYYY-MM-DD"
@@ -63,7 +64,7 @@ export async function createWalkIn(
 
   const code = `DMS-${crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 4)}`
 
-  const { error: insertError } = await supabase.from('bookings').insert({
+  const { data: inserted, error: insertError } = await supabase.from('bookings').insert({
     confirmation_code: code,
     customer_name: bandName?.trim() || 'Walk-in',
     customer_email: '',
@@ -79,8 +80,15 @@ export async function createWalkIn(
     deposit_amount,
     amount_paid: total_amount,
     payment_method: 'none',
-  })
+  }).select('id').single()
 
   if (insertError) return { success: false, error: insertError.message }
+
+  if (inserted?.id) {
+    void pushGcalEvent(inserted.id as string).catch((err: unknown) => {
+      console.error('[gcal:push] createWalkIn failed', err)
+    })
+  }
+
   return { success: true, code }
 }

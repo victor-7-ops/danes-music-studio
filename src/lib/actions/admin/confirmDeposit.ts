@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { pushGcalEvent } from '@/lib/gcal/pushSync'
 
 export async function confirmDeposit(
   bookingId: string,
@@ -26,5 +27,10 @@ export async function confirmDeposit(
     .neq('status', 'cancelled')
 
   if (error) return { success: false, error: error.message }
+
+  void pushGcalEvent(bookingId).catch((err: unknown) => {
+    console.error('[gcal:push] confirmDeposit failed', err)
+  })
+
   return { success: true }
 }

@@ -2,6 +2,7 @@ import { createHmac, timingSafeEqual } from 'crypto'
 import { createClient } from '@/lib/supabase/server'
 import type { TablesInsert } from '@/types/database'
 import { sendConfirmEmail } from '@/lib/emails/confirm'
+import { pushGcalEvent } from '@/lib/gcal/pushSync'
 
 export const runtime = 'nodejs'
 
@@ -124,6 +125,11 @@ export async function POST(request: Request) {
     // Fire-and-forget confirm email — never await (D-06: must not block 200 response)
     void sendConfirmEmail({ ...booking, amount_paid: amountPaid }).catch((err: unknown) => {
       console.error('[email] confirm failed', err)
+    })
+
+    // Fire-and-forget GCal push — never await (T-07-12: must not block 200 response)
+    void pushGcalEvent(booking.id).catch((err: unknown) => {
+      console.error('[gcal:push] paymongo webhook failed', err)
     })
 
     // Insert payment audit row

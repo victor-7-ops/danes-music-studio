@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { sendCancelEmail } from '@/lib/emails/cancel'
+import { deleteGcalEvent } from '@/lib/gcal/pushSync'
 
 export async function cancelBooking(
   bookingId: string
@@ -14,7 +15,7 @@ export async function cancelBooking(
 
   const { data: booking, error: fetchError } = await supabase
     .from('bookings')
-    .select('id, status, confirmation_code, customer_email, customer_name, band_name, start_at')
+    .select('id, status, confirmation_code, customer_email, customer_name, band_name, start_at, gcal_event_id')
     .eq('id', bookingId)
     .single()
 
@@ -33,6 +34,12 @@ export async function cancelBooking(
     sendCancelEmail(booking).catch((err) =>
       console.error('[email:cancel]', err)
     )
+  }
+
+  if (booking.status === 'confirmed' && booking.gcal_event_id) {
+    void deleteGcalEvent(booking.gcal_event_id as string).catch((err: unknown) => {
+      console.error('[gcal:push] cancelBooking delete failed', err)
+    })
   }
 
   return { success: true }
