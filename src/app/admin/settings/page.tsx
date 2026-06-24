@@ -1,8 +1,11 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { updateSettings } from '@/lib/actions/admin/updateSettings'
+import { connectGoogleCalendar } from '@/lib/actions/admin/connectGoogleCalendar'
+import { disconnectGoogleCalendar } from '@/lib/actions/admin/disconnectGoogleCalendar'
 
 interface FormState {
   operatingOpen: string
@@ -28,6 +31,13 @@ export default function SettingsPage() {
   const [fetchError, setFetchError] = useState<string | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  const [gcalEmail, setGcalEmail] = useState<string | null>(null)
+  const [gcalConnected, setGcalConnected] = useState(false)
+  const [gcalLoading, setGcalLoading] = useState(false)
+  const [gcalFeedback, setGcalFeedback] = useState<string | null>(null)
+
+  const searchParams = useSearchParams()
 
   useEffect(() => {
     async function loadSettings() {
@@ -61,10 +71,48 @@ export default function SettingsPage() {
         reminderEnabled: s.reminder_enabled,
         ratePerHourDisplay: Math.round(st.rate_per_hour / 100),
       })
+
+      // Fetch Google Calendar connection state
+      const { data: gcalRow } = await supabase
+        .from('google_tokens')
+        .select('google_email')
+        .single()
+      if (gcalRow) {
+        setGcalConnected(true)
+        setGcalEmail(gcalRow.google_email as string)
+      }
     }
 
     loadSettings()
-  }, [])
+
+    // Read ?gcal= param from OAuth redirect
+    const gcalParam = searchParams.get('gcal')
+    if (gcalParam === 'connected') setGcalFeedback('Google Calendar connected successfully.')
+    else if (gcalParam === 'error_no_refresh_token')
+      setGcalFeedback(
+        'Connection failed: Google did not return a refresh token. Try disconnecting and reconnecting.'
+      )
+    else if (gcalParam === 'error') setGcalFeedback('Connection failed. Please try again.')
+  }, [searchParams])
+
+  async function handleConnect() {
+    setGcalLoading(true)
+    await connectGoogleCalendar()
+    // redirect() from the action navigates away — no need to reset loading
+  }
+
+  async function handleDisconnect() {
+    setGcalLoading(true)
+    const result = await disconnectGoogleCalendar()
+    if (result.success) {
+      setGcalConnected(false)
+      setGcalEmail(null)
+      setGcalFeedback('Google Calendar disconnected.')
+    } else {
+      setGcalFeedback(result.error ?? 'Disconnect failed.')
+    }
+    setGcalLoading(false)
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -208,6 +256,38 @@ export default function SettingsPage() {
           <p className="mt-1 ml-7 font-sans text-xs text-muted">
             Reminder emails sent 24 hours before booking start
           </p>
+        </div>
+
+        {/* Google Calendar */}
+        <div>
+          <p className={`${labelClass} mb-3`}>Google Calendar</p>
+          {gcalFeedback && (
+            <p className="mb-3 font-sans text-sm text-ink border-l-2 border-ink/20 pl-3">{gcalFeedback}</p>
+          )}
+          {gcalConnected ? (
+            <div className="space-y-3">
+              <p className="font-sans text-sm text-ink">
+                Connected as <span className="font-semibold">{gcalEmail}</span>
+              </p>
+              <button
+                type="button"
+                onClick={handleDisconnect}
+                disabled={gcalLoading}
+                className="bg-ink text-bg px-4 py-2 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
+              >
+                {gcalLoading ? 'Disconnecting...' : 'Disconnect'}
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={handleConnect}
+              disabled={gcalLoading}
+              className="bg-ink text-bg px-4 py-2 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
+            >
+              {gcalLoading ? 'Connecting...' : 'Connect Google Calendar'}
+            </button>
+          )}
         </div>
 
         {/* D-13 note */}
