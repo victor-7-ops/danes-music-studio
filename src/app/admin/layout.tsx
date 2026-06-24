@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import AdminSidebar from '@/components/admin/AdminSidebar'
 
 export default async function AdminLayout({
@@ -7,12 +8,20 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode
 }) {
-  // Defense-in-depth: middleware is primary gate; layout is secondary
-  const supabase = await createClient()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-  if (!user) redirect('/admin/login')
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') ?? ''
+
+  if (pathname !== '/admin/login') {
+    const supabase = await createClient()
+    const {
+      data: { user },
+    } = await supabase.auth.getUser()
+    if (!user) redirect('/admin/login')
+  }
+
+  if (pathname === '/admin/login') {
+    return <>{children}</>
+  }
 
   return (
     <div className="flex min-h-screen bg-bg text-ink font-sans antialiased">

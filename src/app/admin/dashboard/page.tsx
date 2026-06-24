@@ -225,6 +225,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             label="Collected"
             value={formatPHP(stats.collected)}
             sub="Confirmed + completed"
+            accent
           />
           <StatCard
             label="Outstanding"

@@ -58,13 +58,18 @@ export function BookingsCalendar({
 }) {
   const router = useRouter()
   const [selected, setSelected] = useState<BookingEvent | null>(null)
+  const [view, setView] = useState<'week' | 'month' | 'day'>('week')
+  const [date, setDate] = useState(new Date())
 
   return (
     <div className="h-full">
       <Calendar
         localizer={localizer}
         events={bookings}
-        defaultView="week"
+        view={view}
+        onView={(v) => setView(v as 'week' | 'month' | 'day')}
+        date={date}
+        onNavigate={(d) => setDate(d)}
         views={['week', 'month', 'day']}
         eventPropGetter={eventPropGetter}
         onSelectEvent={(event) => setSelected(event as BookingEvent)}

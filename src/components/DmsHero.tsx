@@ -49,7 +49,7 @@ export function DmsHero() {
                 width: 4,
                 height: bar.h,
                 borderRadius: 4,
-                backgroundColor: '#0B0B0C',
+                backgroundColor: 'var(--wave-color, #0B0B0C)',
                 animation: `wave 1.4s ease-in-out infinite`,
                 animationDelay: bar.delay,
                 transformOrigin: 'center center',

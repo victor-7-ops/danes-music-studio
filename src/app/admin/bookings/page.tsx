@@ -129,7 +129,7 @@ export default async function BookingsPage({
       <div className="overflow-x-auto">
         <table className="w-full text-sm font-sans border-collapse">
           <thead>
-            <tr className="border-b border-muted">
+            <tr className="border-b border-ink/20">
               {[
                 'Date',
                 'Time',
@@ -185,7 +185,7 @@ export default async function BookingsPage({
                 return (
                   <tr
                     key={b.id}
-                    className="border-b border-muted hover:bg-[#F5F5F5] transition-colors"
+                    className="border-b border-ink/10 hover:bg-ink/[0.03] transition-colors cursor-default"
                   >
                     <td className="py-3 px-2 text-ink">{dateStr}</td>
                     <td className="py-3 px-2 text-ink whitespace-nowrap">{timeStr}</td>
@@ -205,9 +205,9 @@ export default async function BookingsPage({
                     <td className="py-3 px-2 text-muted uppercase text-xs tracking-widest">
                       {b.source.replace('_', ' ')}
                     </td>
-                    <td className="py-3 px-2 text-ink">{formatPHP(b.deposit_amount)}</td>
-                    <td className="py-3 px-2 text-ink">{formatPHP(b.amount_paid)}</td>
-                    <td className="py-3 px-2 text-ink">{formatPHP(b.total_amount)}</td>
+                    <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.deposit_amount)}</td>
+                    <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.amount_paid)}</td>
+                    <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.total_amount)}</td>
                   </tr>
                 )
               })

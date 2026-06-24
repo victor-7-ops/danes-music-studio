@@ -4,6 +4,9 @@ import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { createOnsite } from '@/lib/actions/admin/createOnsite'
 
+const inputClass = 'w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink focus-visible:ring-2 focus-visible:ring-ink/30'
+const labelClass = 'block font-sans text-sm uppercase tracking-widest mb-2'
+
 export default function NewBookingPage() {
   const [date, setDate] = useState('')
   const [start, setStart] = useState('')
@@ -32,7 +35,7 @@ export default function NewBookingPage() {
 
   function handleSubmit() {
     if (!date || !start || !end) {
-      setError('Please fill in date, start, and end time.')
+      setError('Please fill in date, start time, and end time.')
       return
     }
     if (!customerName.trim()) {
@@ -75,7 +78,7 @@ export default function NewBookingPage() {
         <div className="max-w-sm w-full text-center space-y-6">
           <h1 className="font-display text-3xl">Booking Created</h1>
           <p className="font-sans text-sm text-muted uppercase tracking-widest">Confirmation Code</p>
-          <p className="font-display text-4xl tracking-widest">{successCode}</p>
+          <p className="font-display text-4xl tracking-widest" aria-live="polite">{successCode}</p>
           <p className="font-sans text-sm text-muted">
             Status: {depositReceived ? 'Confirmed' : 'Pending'}
           </p>
@@ -103,80 +106,117 @@ export default function NewBookingPage() {
       <div className="max-w-lg mx-auto space-y-6">
         <h1 className="font-display text-3xl">New Booking</h1>
 
+        {/* Required field legend */}
+        <p className="font-sans text-xs text-muted">
+          Fields marked <span aria-hidden="true">*</span><span className="sr-only">with asterisk</span> are required.
+        </p>
+
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
             <div className="sm:col-span-1">
-              <label className="block font-sans text-sm uppercase tracking-widest mb-2">Date</label>
+              <label htmlFor="nb-date" className={labelClass}>
+                Date <span aria-hidden="true" className="text-ink/40">*</span>
+              </label>
               <input
+                id="nb-date"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+                required
+                aria-required="true"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block font-sans text-sm uppercase tracking-widest mb-2">Start</label>
+              <label htmlFor="nb-start" className={labelClass}>
+                Start <span aria-hidden="true" className="text-ink/40">*</span>
+              </label>
               <input
+                id="nb-start"
                 type="time"
                 step={3600}
                 value={start}
                 onChange={(e) => setStart(e.target.value)}
-                className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+                required
+                aria-required="true"
+                className={inputClass}
               />
             </div>
             <div>
-              <label className="block font-sans text-sm uppercase tracking-widest mb-2">End</label>
+              <label htmlFor="nb-end" className={labelClass}>
+                End <span aria-hidden="true" className="text-ink/40">*</span>
+              </label>
               <input
+                id="nb-end"
                 type="time"
                 step={3600}
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+                required
+                aria-required="true"
+                className={inputClass}
               />
             </div>
           </div>
 
           <div>
-            <label className="block font-sans text-sm uppercase tracking-widest mb-2">Customer Name</label>
+            <label htmlFor="nb-customer-name" className={labelClass}>
+              Customer Name <span aria-hidden="true" className="text-ink/40">*</span>
+            </label>
             <input
+              id="nb-customer-name"
               type="text"
               value={customerName}
               onChange={(e) => setCustomerName(e.target.value)}
               required
-              className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+              aria-required="true"
+              autoComplete="name"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label className="block font-sans text-sm uppercase tracking-widest mb-2">Customer Phone</label>
+            <label htmlFor="nb-customer-phone" className={labelClass}>
+              Customer Phone <span aria-hidden="true" className="text-ink/40">*</span>
+            </label>
             <input
+              id="nb-customer-phone"
               type="tel"
               value={customerPhone}
               onChange={(e) => setCustomerPhone(e.target.value)}
               required
-              className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+              aria-required="true"
+              autoComplete="tel"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label className="block font-sans text-sm uppercase tracking-widest mb-2">Customer Email</label>
+            <label htmlFor="nb-customer-email" className={labelClass}>
+              Customer Email
+            </label>
             <input
+              id="nb-customer-email"
               type="email"
               value={customerEmail}
               onChange={(e) => setCustomerEmail(e.target.value)}
-              placeholder="Email (optional)"
-              className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+              placeholder="Optional"
+              autoComplete="email"
+              className={inputClass}
             />
           </div>
 
           <div>
-            <label className="block font-sans text-sm uppercase tracking-widest mb-2">Band Name</label>
+            <label htmlFor="nb-band-name" className={labelClass}>
+              Band Name
+            </label>
             <input
+              id="nb-band-name"
               type="text"
               value={bandName}
               onChange={(e) => setBandName(e.target.value)}
-              placeholder="Band name (optional)"
-              className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+              placeholder="Optional"
+              className={inputClass}
             />
           </div>
 
@@ -184,28 +224,33 @@ export default function NewBookingPage() {
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"
-                id="depositReceived"
+                id="nb-deposit-received"
                 checked={depositReceived}
                 onChange={(e) => setDepositReceived(e.target.checked)}
                 className="h-4 w-4 accent-ink"
               />
-              <label htmlFor="depositReceived" className="font-sans text-sm uppercase tracking-widest cursor-pointer">
+              <label htmlFor="nb-deposit-received" className="font-sans text-sm uppercase tracking-widest cursor-pointer">
                 Deposit received
               </label>
             </div>
-            <p className="font-sans text-xs text-muted pl-7">
+            <p className="font-sans text-xs text-muted pl-7" aria-live="polite">
               {depositReceived
                 ? 'Status will be set to Confirmed'
                 : 'Status will be set to Pending (owner-managed, no auto-expire)'}
             </p>
           </div>
 
-          {error && <p className="text-red-600 font-sans text-sm">{error}</p>}
+          {error && (
+            <p role="alert" className="text-red-600 font-sans text-sm">
+              {error}
+            </p>
+          )}
 
           <button
             onClick={handleSubmit}
             disabled={isPending}
             className="w-full bg-ink text-bg px-6 py-3 font-sans text-xs uppercase tracking-widest hover:opacity-80 transition-opacity disabled:opacity-50"
+            aria-busy={isPending}
           >
             {isPending ? 'Creating...' : 'Create Booking'}
           </button>

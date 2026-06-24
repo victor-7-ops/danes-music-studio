@@ -179,9 +179,9 @@ export default function SettingsPage() {
               step={1}
               required
               className={inputClass}
-              value={form.ratePerHourDisplay}
+              value={form.ratePerHourDisplay || ''}
               onChange={(e) =>
-                setForm((f) => ({ ...f, ratePerHourDisplay: Number(e.target.value) }))
+                setForm((f) => ({ ...f, ratePerHourDisplay: e.target.value === '' ? 0 : Number(e.target.value) }))
               }
             />
           </label>
