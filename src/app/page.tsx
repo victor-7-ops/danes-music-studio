@@ -1,7 +1,16 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { DmsHero } from '@/components/DmsHero'
+import { createClient } from '@/lib/supabase/server'
 
-export default function Page() {
+export default async function Page() {
+  const supabase = await createClient()
+  const { data: files } = await supabase.storage.from('studio-photos').list()
+  const imageExtensions = /\.(jpe?g|png|webp|avif)$/i
+  const urls = (files ?? [])
+    .filter(f => imageExtensions.test(f.name))
+    .map(f => supabase.storage.from('studio-photos').getPublicUrl(f.name).data.publicUrl)
+
   return (
     <main className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16">
 
@@ -38,6 +47,24 @@ export default function Page() {
       >
         Book Now
       </Link>
+
+      {urls.length > 0 && (
+        <section className="w-full max-w-4xl mt-16 px-0">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {urls.map((url, i) => (
+              <div key={i} className="relative aspect-square bg-border overflow-hidden">
+                <Image
+                  src={url}
+                  alt="Studio"
+                  fill
+                  className="object-cover"
+                  sizes="(min-width: 640px) 33vw, 50vw"
+                />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
     </main>
   )
