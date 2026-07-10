@@ -5,11 +5,14 @@ import SlotGrid from './SlotGrid'
 
 interface SlotGridStepProps {
   date: string
+  service: string
+  rateCents: number
+  depositPct: number
   slots: Array<{ startAt: string; endAt: string }>
   allSlotHours: number[]
 }
 
-export default function SlotGridStep({ date, slots, allSlotHours }: SlotGridStepProps) {
+export default function SlotGridStep({ date, service, rateCents, depositPct, slots, allSlotHours }: SlotGridStepProps) {
   const router = useRouter()
 
   function onConfirm(
@@ -30,7 +33,7 @@ export default function SlotGridStep({ date, slots, allSlotHours }: SlotGridStep
       timeZone: 'Asia/Manila',
     })
     router.push(
-      `/book/details?date=${date}&start=${startHHMM}&end=${endHHMM}&payment=${paymentType}`
+      `/book/details?service=${service}&date=${date}&start=${startHHMM}&end=${endHHMM}&payment=${paymentType}`
     )
   }
 
@@ -58,6 +61,8 @@ export default function SlotGridStep({ date, slots, allSlotHours }: SlotGridStep
         <SlotGrid
           slots={slots}
           allSlotHours={allSlotHours}
+          rateCents={rateCents}
+          depositPct={depositPct}
           onConfirm={onConfirm}
         />
       </div>

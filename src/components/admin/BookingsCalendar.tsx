@@ -23,6 +23,8 @@ export interface BookingEvent {
   amount_paid: number
   total_amount: number
   source: 'online' | 'onsite' | 'walk_in'
+  payment_proof_url: string | null
+  equipment: { name: string; price: number }[]
 }
 
 const localizer = dateFnsLocalizer({

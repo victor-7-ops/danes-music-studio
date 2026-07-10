@@ -5,7 +5,6 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
-
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
@@ -43,6 +42,7 @@ export type Database = {
         Row: {
           created_at: string
           end_at: string
+          external_id: string | null
           id: string
           reason: string | null
           start_at: string
@@ -51,6 +51,7 @@ export type Database = {
         Insert: {
           created_at?: string
           end_at: string
+          external_id?: string | null
           id?: string
           reason?: string | null
           start_at: string
@@ -59,6 +60,7 @@ export type Database = {
         Update: {
           created_at?: string
           end_at?: string
+          external_id?: string | null
           id?: string
           reason?: string | null
           start_at?: string
@@ -66,10 +68,50 @@ export type Database = {
         }
         Relationships: []
       }
+      booking_equipment: {
+        Row: {
+          booking_id: string
+          created_at: string
+          equipment_id: string
+          id: string
+          price_at_booking: number
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          equipment_id: string
+          id?: string
+          price_at_booking: number
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          equipment_id?: string
+          id?: string
+          price_at_booking?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_equipment_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "booking_equipment_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bookings: {
         Row: {
           amount_paid: number
           band_name: string | null
+          cancel_token: string
           confirmation_code: string
           created_at: string
           customer_email: string
@@ -77,12 +119,15 @@ export type Database = {
           customer_phone: string
           deposit_amount: number
           end_at: string
+          gcal_event_id: string | null
           hold_expires_at: string | null
           id: string
           notes: string | null
           payment_method: Database["public"]["Enums"]["payment_method_type"]
+          payment_proof_url: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           reminder_sent: boolean
+          reschedule_from: string | null
           service_type_id: string
           source: Database["public"]["Enums"]["booking_source"]
           start_at: string
@@ -93,6 +138,7 @@ export type Database = {
         Insert: {
           amount_paid?: number
           band_name?: string | null
+          cancel_token?: string
           confirmation_code: string
           created_at?: string
           customer_email: string
@@ -100,12 +146,15 @@ export type Database = {
           customer_phone: string
           deposit_amount: number
           end_at: string
+          gcal_event_id?: string | null
           hold_expires_at?: string | null
           id?: string
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method_type"]
+          payment_proof_url?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           reminder_sent?: boolean
+          reschedule_from?: string | null
           service_type_id: string
           source?: Database["public"]["Enums"]["booking_source"]
           start_at: string
@@ -116,6 +165,7 @@ export type Database = {
         Update: {
           amount_paid?: number
           band_name?: string | null
+          cancel_token?: string
           confirmation_code?: string
           created_at?: string
           customer_email?: string
@@ -123,12 +173,15 @@ export type Database = {
           customer_phone?: string
           deposit_amount?: number
           end_at?: string
+          gcal_event_id?: string | null
           hold_expires_at?: string | null
           id?: string
           notes?: string | null
           payment_method?: Database["public"]["Enums"]["payment_method_type"]
+          payment_proof_url?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           reminder_sent?: boolean
+          reschedule_from?: string | null
           service_type_id?: string
           source?: Database["public"]["Enums"]["booking_source"]
           start_at?: string
@@ -138,6 +191,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "bookings_reschedule_from_fkey"
+            columns: ["reschedule_from"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_service_type_id_fkey"
             columns: ["service_type_id"]
             isOneToOne: false
@@ -145,6 +205,72 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      equipment: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          price_per_session: number
+          sort_order: number
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          price_per_session: number
+          sort_order?: number
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          price_per_session?: number
+          sort_order?: number
+        }
+        Relationships: []
+      }
+      google_tokens: {
+        Row: {
+          calendar_id: string
+          created_at: string
+          encrypted_refresh_token: string
+          google_email: string
+          id: string
+          sync_token: string | null
+          updated_at: string
+          watch_channel_id: string | null
+          watch_expires_at: string | null
+          watch_resource_id: string | null
+        }
+        Insert: {
+          calendar_id?: string
+          created_at?: string
+          encrypted_refresh_token: string
+          google_email: string
+          id?: string
+          sync_token?: string | null
+          updated_at?: string
+          watch_channel_id?: string | null
+          watch_expires_at?: string | null
+          watch_resource_id?: string | null
+        }
+        Update: {
+          calendar_id?: string
+          created_at?: string
+          encrypted_refresh_token?: string
+          google_email?: string
+          id?: string
+          sync_token?: string | null
+          updated_at?: string
+          watch_channel_id?: string | null
+          watch_expires_at?: string | null
+          watch_resource_id?: string | null
+        }
+        Relationships: []
       }
       payments: {
         Row: {
@@ -216,8 +342,10 @@ export type Database = {
       }
       settings: {
         Row: {
+          bank_details: string | null
           buffer_minutes: number
           default_deposit_pct: number
+          gcash_qr_url: string | null
           hold_window_minutes: number
           id: string
           min_booking_minutes: number
@@ -226,8 +354,10 @@ export type Database = {
           reminder_enabled: boolean
         }
         Insert: {
+          bank_details?: string | null
           buffer_minutes?: number
           default_deposit_pct?: number
+          gcash_qr_url?: string | null
           hold_window_minutes?: number
           id?: string
           min_booking_minutes?: number
@@ -236,8 +366,10 @@ export type Database = {
           reminder_enabled?: boolean
         }
         Update: {
+          bank_details?: string | null
           buffer_minutes?: number
           default_deposit_pct?: number
+          gcash_qr_url?: string | null
           hold_window_minutes?: number
           id?: string
           min_booking_minutes?: number
@@ -289,11 +421,8 @@ export type Database = {
     }
   }
 }
-
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
-
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
-
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
@@ -322,7 +451,6 @@ export type Tables<
       ? R
       : never
     : never
-
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -347,7 +475,6 @@ export type TablesInsert<
       ? I
       : never
     : never
-
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
@@ -372,7 +499,6 @@ export type TablesUpdate<
       ? U
       : never
     : never
-
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
@@ -389,7 +515,6 @@ export type Enums<
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
-
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
@@ -406,7 +531,6 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
-
 export const Constants = {
   graphql_public: {
     Enums: {},

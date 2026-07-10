@@ -22,7 +22,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
   const supabase = await createClient()
   const { data: booking } = await supabase
     .from('bookings')
-    .select('status, confirmation_code, hold_expires_at, total_amount, deposit_amount, payment_method, start_at, end_at, band_name, customer_name')
+    .select('status, confirmation_code, hold_expires_at, total_amount, deposit_amount, payment_method, start_at, end_at, band_name, customer_name, payment_proof_url')
     .eq('confirmation_code', code)
     .single()
 
@@ -91,6 +91,33 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
           href="/"
           className="font-sans text-sm text-muted underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         >
+          Back to home
+        </Link>
+      </div>
+    )
+  }
+
+  // Branch B2 — pending with proof already uploaded, awaiting admin review
+  if (booking.payment_proof_url) {
+    return (
+      <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16 text-center">
+        <div className="mb-8">
+          <DmsHero dark />
+        </div>
+
+        <h1 className="font-display text-6xl uppercase text-ink mb-4">
+          Payment Received
+        </h1>
+
+        <p className="font-sans text-muted mb-8 max-w-sm">
+          We&apos;re reviewing your payment. You&apos;ll get a confirmation email once it&apos;s verified.
+        </p>
+
+        <div className="font-display text-4xl text-ink tracking-widest mb-8">
+          {booking.confirmation_code}
+        </div>
+
+        <Link href="/" className="font-sans text-sm text-muted underline">
           Back to home
         </Link>
       </div>

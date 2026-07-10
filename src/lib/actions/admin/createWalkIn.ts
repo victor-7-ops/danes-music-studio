@@ -2,12 +2,14 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { pushGcalEvent } from '@/lib/gcal/pushSync'
+import { SERVICES, isServiceSlug, type ServiceSlug } from '@/lib/services'
 
 export interface CreateWalkInParams {
   date: string      // "YYYY-MM-DD"
   start: string     // "HH:MM" 24h Manila
   end: string       // "HH:MM" 24h Manila
   bandName?: string
+  service?: ServiceSlug   // defaults to rehearsal
 }
 
 export async function createWalkIn(
@@ -20,6 +22,8 @@ export async function createWalkIn(
   if (!user) return { success: false, error: 'Unauthorized' }
 
   const { date, start, end, bandName } = params
+  const service: ServiceSlug =
+    params.service && isServiceSlug(params.service) ? params.service : 'rehearsal'
 
   const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date)
   const startOk = /^\d{2}:\d{2}$/.test(start)
@@ -50,8 +54,8 @@ export async function createWalkIn(
 
   const { data: serviceType, error: serviceError } = await supabase
     .from('service_types')
-    .select('id, rate_per_hour')
-    .eq('name', 'Rehearsal')
+    .select('id, rate_per_hour, deposit_pct')
+    .eq('name', SERVICES[service].name)
     .single()
 
   if (serviceError || !serviceType) {
@@ -60,7 +64,7 @@ export async function createWalkIn(
 
   const hours = endHour - startHour
   const total_amount = hours * serviceType.rate_per_hour
-  const deposit_amount = Math.floor(total_amount / 2)
+  const deposit_amount = Math.floor(total_amount * serviceType.deposit_pct)
 
   const code = `DMS-${crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 4)}`
 
@@ -82,7 +86,15 @@ export async function createWalkIn(
     payment_method: 'none',
   }).select('id').single()
 
-  if (insertError) return { success: false, error: insertError.message }
+  if (insertError) {
+    if (
+      insertError.message.includes('bookings_no_overlap') ||
+      insertError.message.includes('exclusion constraint')
+    ) {
+      return { success: false, error: 'Time slot overlaps an existing booking.' }
+    }
+    return { success: false, error: insertError.message }
+  }
 
   if (inserted?.id) {
     void pushGcalEvent(inserted.id as string).catch((err: unknown) => {

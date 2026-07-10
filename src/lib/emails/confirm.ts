@@ -15,6 +15,7 @@ type ConfirmBooking = Pick<
   | 'end_at'
   | 'total_amount'
   | 'amount_paid'
+  | 'cancel_token'
 >
 
 export async function sendConfirmEmail(booking: ConfirmBooking): Promise<void> {

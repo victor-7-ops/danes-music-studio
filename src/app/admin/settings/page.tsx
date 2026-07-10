@@ -7,6 +7,14 @@ import { updateSettings } from '@/lib/actions/admin/updateSettings'
 import { connectGoogleCalendar } from '@/lib/actions/admin/connectGoogleCalendar'
 import { disconnectGoogleCalendar } from '@/lib/actions/admin/disconnectGoogleCalendar'
 import { syncGoogleCalendar } from '@/lib/actions/admin/syncGoogleCalendar'
+import { createEquipment, updateEquipment, deleteEquipment } from '@/lib/actions/admin/equipment'
+
+interface EquipmentRow {
+  id: string
+  name: string
+  price_per_session: number
+  active: boolean
+}
 
 interface FormState {
   operatingOpen: string
@@ -15,6 +23,8 @@ interface FormState {
   defaultDepositPct: number
   reminderEnabled: boolean
   ratePerHourDisplay: number // in pesos (centavos / 100)
+  gcashQrUrl: string
+  bankDetails: string
 }
 
 const DEFAULTS: FormState = {
@@ -24,6 +34,8 @@ const DEFAULTS: FormState = {
   defaultDepositPct: 50,
   reminderEnabled: true,
   ratePerHourDisplay: 350,
+  gcashQrUrl: '',
+  bankDetails: '',
 }
 
 export default function SettingsPage() {
@@ -39,7 +51,23 @@ export default function SettingsPage() {
   const [gcalFeedback, setGcalFeedback] = useState<string | null>(null)
   const [syncResult, setSyncResult] = useState<string | null>(null)
 
+  const [equipment, setEquipment] = useState<EquipmentRow[]>([])
+  const [newEquipName, setNewEquipName] = useState('')
+  const [newEquipPrice, setNewEquipPrice] = useState<number | ''>('')
+  const [equipError, setEquipError] = useState<string | null>(null)
+  const [equipLoading, setEquipLoading] = useState(false)
+
   const searchParams = useSearchParams()
+
+  async function reloadEquipment() {
+    const supabase = createClient()
+    const { data } = await supabase
+      .from('equipment')
+      .select('id, name, price_per_session, active')
+      .order('sort_order')
+      .order('created_at')
+    setEquipment(data ?? [])
+  }
 
   useEffect(() => {
     async function loadSettings() {
@@ -72,6 +100,8 @@ export default function SettingsPage() {
         defaultDepositPct: s.default_deposit_pct,
         reminderEnabled: s.reminder_enabled,
         ratePerHourDisplay: Math.round(st.rate_per_hour / 100),
+        gcashQrUrl: s.gcash_qr_url ?? '',
+        bankDetails: s.bank_details ?? '',
       })
 
       // Fetch Google Calendar connection state
@@ -86,6 +116,7 @@ export default function SettingsPage() {
     }
 
     loadSettings()
+    reloadEquipment()
 
     // Read ?gcal= param from OAuth redirect
     const gcalParam = searchParams.get('gcal')
@@ -130,6 +161,50 @@ export default function SettingsPage() {
     setGcalLoading(false)
   }
 
+  async function handleAddEquipment(e: React.FormEvent) {
+    e.preventDefault()
+    setEquipError(null)
+    if (newEquipName.trim().length < 1 || newEquipPrice === '' || newEquipPrice < 0) {
+      setEquipError('Enter a name and a valid price.')
+      return
+    }
+    setEquipLoading(true)
+    const result = await createEquipment({
+      name: newEquipName,
+      pricePerSession: Math.round(newEquipPrice * 100),
+    })
+    if (result.success) {
+      setNewEquipName('')
+      setNewEquipPrice('')
+      await reloadEquipment()
+    } else {
+      setEquipError(result.error ?? 'Failed to add equipment.')
+    }
+    setEquipLoading(false)
+  }
+
+  async function handleToggleEquipment(id: string, active: boolean) {
+    setEquipLoading(true)
+    const result = await updateEquipment(id, { active: !active })
+    if (result.success) {
+      await reloadEquipment()
+    } else {
+      setEquipError(result.error ?? 'Failed to update equipment.')
+    }
+    setEquipLoading(false)
+  }
+
+  async function handleDeleteEquipment(id: string) {
+    setEquipLoading(true)
+    const result = await deleteEquipment(id)
+    if (result.success) {
+      await reloadEquipment()
+    } else {
+      setEquipError(result.error ?? 'Failed to delete equipment.')
+    }
+    setEquipLoading(false)
+  }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -143,6 +218,8 @@ export default function SettingsPage() {
       defaultDepositPct: form.defaultDepositPct,
       reminderEnabled: form.reminderEnabled,
       ratePerHour: Math.round(form.ratePerHourDisplay * 100),
+      gcashQrUrl: form.gcashQrUrl,
+      bankDetails: form.bankDetails,
     })
 
     if (result.success) {
@@ -255,6 +332,40 @@ export default function SettingsPage() {
           </div>
         </div>
 
+        {/* Manual Payment */}
+        <div>
+          <p className={`${labelClass} mb-3`}>Manual Payment (GCash / Bank)</p>
+          <div className="space-y-4">
+            <label className="block">
+              <span className={labelClass}>GCash QR image URL</span>
+              <input
+                type="url"
+                className={inputClass}
+                placeholder="https://.../gcash-qr.png"
+                value={form.gcashQrUrl}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, gcashQrUrl: e.target.value }))
+                }
+              />
+            </label>
+            <label className="block">
+              <span className={labelClass}>Bank / other payment details</span>
+              <textarea
+                rows={3}
+                className={inputClass}
+                placeholder="BDO 1234-5678-90 · Danes Music Studio"
+                value={form.bankDetails}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, bankDetails: e.target.value }))
+                }
+              />
+            </label>
+          </div>
+          <p className="mt-1 font-sans text-xs text-muted">
+            Shown to customers on the payment page. Leave both blank to disable manual payment.
+          </p>
+        </div>
+
         {/* Notifications */}
         <div>
           <p className={`${labelClass} mb-3`}>Notifications</p>
@@ -338,6 +449,82 @@ export default function SettingsPage() {
           {loading ? 'Saving...' : 'Save Settings'}
         </button>
       </form>
+
+      {/* Equipment / Gear — own section, own mutations (not part of the settings form above) */}
+      <div className="mt-10 pt-8 border-t border-ink/10">
+        <p className={`${labelClass} mb-3`}>Equipment / Gear</p>
+        <p className="mb-4 font-sans text-xs text-muted">
+          Added as an optional add-on at booking time. Price is flat per session, added to the studio total.
+        </p>
+
+        {equipment.length > 0 && (
+          <div className="border border-ink/20 divide-y divide-ink/10 mb-4">
+            {equipment.map((item) => (
+              <div key={item.id} className="flex items-center justify-between px-3 py-2 gap-3">
+                <div className={`flex-1 font-sans text-sm ${item.active ? 'text-ink' : 'text-muted line-through'}`}>
+                  {item.name}
+                </div>
+                <div className="font-sans text-sm text-ink tabular-nums">
+                  ₱{(item.price_per_session / 100).toLocaleString('en-PH')}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleToggleEquipment(item.id, item.active)}
+                  disabled={equipLoading}
+                  className="font-sans text-xs uppercase tracking-widest text-muted hover:text-ink underline disabled:opacity-50"
+                >
+                  {item.active ? 'Disable' : 'Enable'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteEquipment(item.id)}
+                  disabled={equipLoading}
+                  className="font-sans text-xs uppercase tracking-widest text-red-600 hover:opacity-70 underline disabled:opacity-50"
+                >
+                  Delete
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <form onSubmit={handleAddEquipment} className="flex flex-wrap items-end gap-3">
+          <label className="block flex-1 min-w-[160px]">
+            <span className={labelClass}>Name</span>
+            <input
+              type="text"
+              className={inputClass}
+              placeholder="Extra mic"
+              value={newEquipName}
+              onChange={(e) => setNewEquipName(e.target.value)}
+            />
+          </label>
+          <label className="block w-32">
+            <span className={labelClass}>Price (₱)</span>
+            <input
+              type="number"
+              min={0}
+              step={1}
+              className={inputClass}
+              value={newEquipPrice}
+              onChange={(e) =>
+                setNewEquipPrice(e.target.value === '' ? '' : Number(e.target.value))
+              }
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={equipLoading}
+            className="bg-ink text-bg px-4 py-2 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
+          >
+            {equipLoading ? 'Adding...' : 'Add'}
+          </button>
+        </form>
+
+        {equipError && (
+          <p className="mt-2 font-sans text-sm text-red-600">{equipError}</p>
+        )}
+      </div>
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import type { TablesInsert } from '@/types/database'
 import { sendConfirmEmail } from '@/lib/emails/confirm'
 import { pushGcalEvent } from '@/lib/gcal/pushSync'
+import { sendTelegramMessage, paymentConfirmedMessage } from '@/lib/telegram'
 
 export const runtime = 'nodejs'
 
@@ -99,7 +100,7 @@ export async function POST(request: Request) {
     // Look up booking by confirmation code (= referenceNumber)
     const { data: booking, error: bookingError } = await supabase
       .from('bookings')
-      .select('id, deposit_amount, total_amount, payment_method, status, customer_email, customer_name, band_name, start_at, end_at, confirmation_code')
+      .select('id, deposit_amount, total_amount, payment_method, status, customer_email, customer_name, band_name, start_at, end_at, confirmation_code, cancel_token')
       .eq('confirmation_code', referenceNumber)
       .single()
 
@@ -130,6 +131,18 @@ export async function POST(request: Request) {
     // Fire-and-forget GCal push — never await (T-07-12: must not block 200 response)
     void pushGcalEvent(booking.id).catch((err: unknown) => {
       console.error('[gcal:push] paymongo webhook failed', err)
+    })
+
+    // Fire-and-forget Telegram alert — never await, must not block 200 response
+    void sendTelegramMessage(
+      paymentConfirmedMessage({
+        confirmationCode: booking.confirmation_code,
+        customerName: booking.customer_name,
+        bandName: booking.band_name,
+        amountPaid,
+      })
+    ).catch((err: unknown) => {
+      console.error('[telegram] payment confirmed alert failed', err)
     })
 
     // Insert payment audit row

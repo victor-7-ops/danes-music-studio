@@ -11,6 +11,7 @@ export function buildConfirmHtml(booking: {
   end_at: string
   total_amount: number
   amount_paid: number
+  cancel_token?: string
 }): string {
   const displayName = booking.band_name ?? booking.customer_name
   const dateTime =
@@ -19,6 +20,10 @@ export function buildConfirmHtml(booking: {
     formatManila(booking.end_at, 'time')
   const total = formatPHP(booking.total_amount)
   const balance = formatPHP(booking.total_amount - booking.amount_paid)
+  const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000'
+  const manageUrl = booking.cancel_token
+    ? `${baseUrl}/booking/${booking.confirmation_code}?token=${booking.cancel_token}`
+    : null
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -87,6 +92,14 @@ export function buildConfirmHtml(booking: {
               <span style="color:#999999;">Balance due: </span>${balance}
             </td>
           </tr>
+
+          ${manageUrl ? `
+          <!-- Manage link -->
+          <tr>
+            <td style="padding-bottom:24px;">
+              <a href="${manageUrl}" style="font-size:14px;color:#111111;text-decoration:underline;">Manage or cancel this booking</a>
+            </td>
+          </tr>` : ''}
 
           <!-- Footer hairline -->
           <tr>

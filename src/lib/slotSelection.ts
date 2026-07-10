@@ -1,5 +1,3 @@
-// TODO Phase 3: read rate from service_types
-
 /**
  * Returns true if candidateHour can be added to (or removed from) selectedStartHours
  * while keeping the selection contiguous.
@@ -25,13 +23,16 @@ export function isContiguous(
 
 /**
  * Computes total and deposit in centavos.
- * depositCents = Math.floor(totalCents / 2) — integer division, never float.
+ * depositPct comes from service_types.deposit_pct (e.g. 0.5).
+ * depositCents = Math.floor(totalCents * depositPct) — integer result, never float output.
  */
 export function computeTotal(
   slotCount: number,
-  rateCents: number
+  rateCents: number,
+  depositPct = 0.5,
+  equipmentCents = 0
 ): { totalCents: number; depositCents: number } {
-  const totalCents = slotCount * rateCents
-  const depositCents = Math.floor(totalCents / 2)
+  const totalCents = slotCount * rateCents + equipmentCents
+  const depositCents = Math.floor(totalCents * depositPct)
   return { totalCents, depositCents }
 }

@@ -3,21 +3,20 @@
 import { useState } from 'react'
 import { isContiguous, computeTotal } from '@/lib/slotSelection'
 
-// TODO Phase 3: read rate from service_types
-const RATE_CENTS = 35000
-
 interface SlotGridProps {
   slots: Array<{ startAt: string; endAt: string }>
   allSlotHours: number[]
+  rateCents: number
+  depositPct: number
   onConfirm: (startIso: string, endIso: string, paymentType: 'full' | 'deposit') => void
 }
 
-export default function SlotGrid({ slots, allSlotHours, onConfirm }: SlotGridProps) {
+export default function SlotGrid({ slots, allSlotHours, rateCents, depositPct, onConfirm }: SlotGridProps) {
   const [selectedHours, setSelectedHours] = useState<number[]>([])
   const [contiguityError, setContiguityError] = useState<string | null>(null)
   const [paymentType, setPaymentType] = useState<'full' | 'deposit'>('full')
 
-  const { totalCents, depositCents } = computeTotal(selectedHours.length, RATE_CENTS)
+  const { totalCents, depositCents } = computeTotal(selectedHours.length, rateCents, depositPct)
 
   function handleSlotClick(h: number) {
     if (selectedHours.includes(h)) {
@@ -130,7 +129,7 @@ export default function SlotGrid({ slots, allSlotHours, onConfirm }: SlotGridPro
                   : 'flex-1 border border-border text-ink px-4 py-3 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2'
               }
             >
-              50% deposit
+              {Math.round(depositPct * 100)}% deposit
             </button>
           </div>
         </>

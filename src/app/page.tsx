@@ -3,6 +3,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { DmsHero } from '@/components/DmsHero'
+import { FeatureWallMarquee } from '@/components/FeatureWallMarquee'
 
 export default async function Page() {
   const supabase = await createClient()
@@ -16,18 +17,11 @@ export default async function Page() {
     <main className="min-h-screen bg-bg flex flex-col">
 
       {/* Hero — full-screen background */}
-      <section className="relative min-h-screen flex flex-col items-center justify-center px-6">
-        {/* Background image */}
-        <Image
-          src="/danes-logo-hero.jpg"
-          alt=""
-          fill
-          priority
-          className="object-cover object-center"
-          sizes="100vw"
-        />
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/60" />
+      <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden bg-black">
+        {/* Feature wall — drifting photo marquee, logo stays fixed on top */}
+        <FeatureWallMarquee />
+        {/* Dark overlay — heavier than a static photo since the marquee is busier/in motion */}
+        <div className="absolute inset-0 bg-black/75" />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center text-center">

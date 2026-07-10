@@ -4,35 +4,60 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+interface EquipmentOption {
+  id: string
+  name: string
+  price_per_session: number
+}
+
 interface DetailsFormProps {
   date: string
   start: string
   end: string
   payment: 'full' | 'deposit'
+  service: string
+  // Display only — server recomputes total in createBooking action
+  rateCents: number
+  depositPct: number
+  equipment: EquipmentOption[]
+  initialEquipmentIds?: string[]
 }
-
-// Display only — server recomputes total in createBooking action
-const RATE_CENTS = 35000
 
 function formatCents(cents: number): string {
   return `₱${(cents / 100).toLocaleString('en-PH')}`
 }
 
-export default function DetailsForm({ date, start, end, payment }: DetailsFormProps) {
+export default function DetailsForm({ date, start, end, payment, service, rateCents, depositPct, equipment, initialEquipmentIds }: DetailsFormProps) {
   const router = useRouter()
 
   const [bandName, setBandName] = useState('')
   const [contactName, setContactName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
+  const [selectedEquipment, setSelectedEquipment] = useState<Set<string>>(
+    new Set(initialEquipmentIds ?? [])
+  )
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const startHour = parseInt(start.split(':')[0])
   const endHour = parseInt(end.split(':')[0])
   const hours = endHour - startHour
-  const totalCents = hours * RATE_CENTS
-  const depositCents = Math.floor(totalCents / 2)
+  const studioCents = hours * rateCents
+  const equipmentCents = equipment
+    .filter((item) => selectedEquipment.has(item.id))
+    .reduce((sum, item) => sum + item.price_per_session, 0)
+  const totalCents = studioCents + equipmentCents
+  const depositCents = Math.floor(totalCents * depositPct)
   const amountDue = payment === 'full' ? totalCents : depositCents
+
+  function toggleEquipment(id: string) {
+    setSelectedEquipment((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
 
   const formattedDate = new Date(`${date}T00:00:00+08:00`).toLocaleDateString('en-PH', {
     weekday: 'long',
@@ -61,8 +86,10 @@ export default function DetailsForm({ date, start, end, payment }: DetailsFormPr
       return
     }
 
+    const equipmentParam = selectedEquipment.size > 0 ? [...selectedEquipment].join(',') : ''
+
     router.push(
-      `/book/review?date=${date}&start=${start}&end=${end}&payment=${payment}&name=${encodeURIComponent(contactName.trim())}&email=${encodeURIComponent(email.trim())}&phone=${encodeURIComponent(phone.trim())}&band=${encodeURIComponent(bandName.trim())}`
+      `/book/review?service=${service}&date=${date}&start=${start}&end=${end}&payment=${payment}&name=${encodeURIComponent(contactName.trim())}&email=${encodeURIComponent(email.trim())}&phone=${encodeURIComponent(phone.trim())}&band=${encodeURIComponent(bandName.trim())}&equipment=${equipmentParam}`
     )
   }
 
@@ -88,9 +115,37 @@ export default function DetailsForm({ date, start, end, payment }: DetailsFormPr
         </p>
         <p className="font-sans text-sm font-semibold text-ink">
           Amount due: {formatCents(amountDue)}
-          {payment === 'deposit' ? ' (50% deposit)' : ' (full payment)'}
+          {payment === 'deposit' ? ` (${Math.round(depositPct * 100)}% deposit)` : ' (full payment)'}
         </p>
       </div>
+
+      {/* Optional equipment add-ons */}
+      {equipment.length > 0 && (
+        <div className="mb-8">
+          <p className={labelClass}>Add Gear (optional)</p>
+          <div className="border border-border divide-y divide-border">
+            {equipment.map((item) => (
+              <label
+                key={item.id}
+                className="flex items-center justify-between gap-3 px-3 py-2 cursor-pointer"
+              >
+                <span className="flex items-center gap-3">
+                  <input
+                    type="checkbox"
+                    checked={selectedEquipment.has(item.id)}
+                    onChange={() => toggleEquipment(item.id)}
+                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+                  />
+                  <span className="font-sans text-sm text-ink">{item.name}</span>
+                </span>
+                <span className="font-sans text-sm text-muted tabular-nums">
+                  +{formatCents(item.price_per_session)}
+                </span>
+              </label>
+            ))}
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         {/* Band / Artist Name — optional */}
@@ -170,7 +225,7 @@ export default function DetailsForm({ date, start, end, payment }: DetailsFormPr
 
         <div className="flex items-center justify-between pt-2">
           <Link
-            href={`/book/slots?date=${date}`}
+            href={`/book/slots?service=${service}&date=${date}`}
             className="font-sans text-sm text-muted hover:text-ink underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
           >
             ← Change slots

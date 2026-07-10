@@ -35,4 +35,12 @@ describe('computeTotal', () => {
   it('3 slots at ₱350 → depositCents is Math.floor(105000/2) = 52500', () => {
     expect(computeTotal(3, 35000)).toEqual({ totalCents: 105000, depositCents: 52500 })
   })
+
+  it('2 slots at ₱350 + ₱150 gear add-on → total includes gear, deposit is on the combined total', () => {
+    expect(computeTotal(2, 35000, 0.5, 15000)).toEqual({ totalCents: 85000, depositCents: 42500 })
+  })
+
+  it('gear add-on defaults to 0 when omitted', () => {
+    expect(computeTotal(2, 35000, 0.5)).toEqual({ totalCents: 70000, depositCents: 35000 })
+  })
 })

@@ -17,6 +17,20 @@ const config: Config = {
         display: ["var(--font-display)", "sans-serif"],
         sans: ["var(--font-sans)", "sans-serif"],
       },
+      keyframes: {
+        marquee: {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
+        "marquee-reverse": {
+          "0%": { transform: "translateX(-50%)" },
+          "100%": { transform: "translateX(0)" },
+        },
+      },
+      animation: {
+        marquee: "marquee 60s linear infinite",
+        "marquee-reverse": "marquee-reverse 60s linear infinite",
+      },
     },
   },
   plugins: [],

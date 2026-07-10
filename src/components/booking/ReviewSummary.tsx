@@ -3,20 +3,29 @@
 import { useState } from 'react'
 import Link from 'next/link'
 
+interface EquipmentOption {
+  id: string
+  name: string
+  price_per_session: number
+}
+
 interface ReviewSummaryProps {
   date: string
   start: string
   end: string
   payment: 'full' | 'deposit'
+  service: string
+  serviceLabel: string
+  // Display only — server recomputes total in createBooking action
+  rateCents: number
+  depositPct: number
   contactName: string
   email: string
   phone: string
   bandName: string
+  equipment: EquipmentOption[]
   onConfirm: () => Promise<void>
 }
-
-// Display only — server recomputes total in createBooking action
-const RATE_CENTS = 35000
 
 function formatCents(cents: number): string {
   return `₱${(cents / 100).toLocaleString('en-PH')}`
@@ -38,10 +47,15 @@ export default function ReviewSummary({
   start,
   end,
   payment,
+  service,
+  serviceLabel,
+  rateCents,
+  depositPct,
   contactName,
   email,
   phone,
   bandName,
+  equipment,
   onConfirm,
 }: ReviewSummaryProps) {
   const [agreed, setAgreed] = useState(false)
@@ -50,8 +64,10 @@ export default function ReviewSummary({
   const startHour = parseInt(start.split(':')[0])
   const endHour = parseInt(end.split(':')[0])
   const hours = endHour - startHour
-  const totalCents = hours * RATE_CENTS
-  const depositCents = Math.floor(totalCents / 2)
+  const studioCents = hours * rateCents
+  const equipmentCents = equipment.reduce((sum, item) => sum + item.price_per_session, 0)
+  const totalCents = studioCents + equipmentCents
+  const depositCents = Math.floor(totalCents * depositPct)
   const amountDue = payment === 'full' ? totalCents : depositCents
   const balanceCents = totalCents - depositCents
 
@@ -67,7 +83,8 @@ export default function ReviewSummary({
     ? bandName.trim()
     : `${contactName} (no band name)`
 
-  const backHref = `/book/details?date=${date}&start=${start}&end=${end}&payment=${payment}&name=${encodeURIComponent(contactName)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&band=${encodeURIComponent(bandName)}`
+  const equipmentParam = equipment.length > 0 ? equipment.map((item) => item.id).join(',') : ''
+  const backHref = `/book/details?service=${service}&date=${date}&start=${start}&end=${end}&payment=${payment}&name=${encodeURIComponent(contactName)}&email=${encodeURIComponent(email)}&phone=${encodeURIComponent(phone)}&band=${encodeURIComponent(bandName)}&equipment=${equipmentParam}`
 
   async function handleConfirm() {
     setPending(true)
@@ -95,7 +112,7 @@ export default function ReviewSummary({
             <Row label="Date" value={formattedDate} />
             <Row label="Time" value={`${formatHH(start)} – ${formatHH(end)}`} />
             <Row label="Duration" value={`${hours} hour${hours !== 1 ? 's' : ''}`} />
-            <Row label="Studio" value="Rehearsal" />
+            <Row label="Studio" value={serviceLabel} />
           </div>
         </section>
 
@@ -114,11 +131,14 @@ export default function ReviewSummary({
         <section>
           <h2 className={sectionHeading}>Payment</h2>
           <div className="border border-border divide-y divide-border">
-            <Row label="Rate" value="₱350 / hr" />
+            <Row label="Rate" value={`${formatCents(rateCents)} / hr`} />
+            {equipment.length > 0 && (
+              <Row label="Gear" value={equipment.map((item) => `${item.name} (+${formatCents(item.price_per_session)})`).join(', ')} />
+            )}
             <Row label="Total" value={formatCents(totalCents)} />
             <Row
               label="Payment type"
-              value={payment === 'full' ? 'Full payment' : '50% deposit'}
+              value={payment === 'full' ? 'Full payment' : `${Math.round(depositPct * 100)}% deposit`}
             />
             <div className="flex justify-between items-baseline px-4 py-3">
               <span className={rowLabel}>Amount due now</span>

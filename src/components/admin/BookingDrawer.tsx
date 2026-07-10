@@ -5,6 +5,7 @@ import { BookingEvent } from '@/components/admin/BookingsCalendar'
 import { confirmDeposit } from '@/lib/actions/admin/confirmDeposit'
 import { cancelBooking } from '@/lib/actions/admin/cancelBooking'
 import { formatPHP } from '@/lib/emails/format'
+import { createClient } from '@/lib/supabase/client'
 
 interface BookingDrawerProps {
   booking: BookingEvent
@@ -57,9 +58,22 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
   const [cancelConfirmStep, setCancelConfirmStep] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [proofUrl, setProofUrl] = useState<string | null>(null)
 
   const drawerRef = useRef<HTMLDivElement>(null)
   const titleId = 'booking-drawer-title'
+
+  // Payment proof lives in a private bucket — resolve a short-lived signed URL.
+  useEffect(() => {
+    if (!booking.payment_proof_url) return
+    const supabase = createClient()
+    supabase.storage
+      .from('payment-proofs')
+      .createSignedUrl(booking.payment_proof_url, 3600)
+      .then(({ data }) => {
+        if (data) setProofUrl(data.signedUrl)
+      })
+  }, [booking.payment_proof_url])
 
   // Move focus into drawer on open
   useEffect(() => {
@@ -211,6 +225,19 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
           </div>
         </div>
 
+        {/* Equipment add-ons */}
+        {booking.equipment.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-widest text-muted font-sans">Gear</p>
+            {booking.equipment.map((item, i) => (
+              <div key={i} className="flex justify-between font-sans text-sm">
+                <span className="text-ink">{item.name}</span>
+                <span className="text-ink tabular-nums">{formatPHP(item.price)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Money */}
         <div className="border-t border-ink/10 pt-4 space-y-2">
           <div className="flex justify-between font-sans text-sm">
@@ -226,6 +253,25 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
             <span className="text-ink tabular-nums">{formatPHP(booking.total_amount)}</span>
           </div>
         </div>
+
+        {/* Payment proof */}
+        {booking.payment_proof_url && (
+          <div className="border-t border-ink/10 pt-4">
+            <p className="text-xs uppercase tracking-widest text-muted font-sans mb-2">Payment Proof</p>
+            {proofUrl ? (
+              <a href={proofUrl} target="_blank" rel="noopener noreferrer">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={proofUrl}
+                  alt="Uploaded payment proof"
+                  className="w-full max-h-64 object-contain border border-ink/10"
+                />
+              </a>
+            ) : (
+              <p className="font-sans text-sm text-muted">Loading…</p>
+            )}
+          </div>
+        )}
 
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-auto">

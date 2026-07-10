@@ -7,7 +7,7 @@ export default async function CalendarPage() {
   const { data: bookings } = await supabase
     .from('bookings')
     .select(
-      'id, confirmation_code, band_name, customer_name, customer_phone, customer_email, start_at, end_at, status, deposit_amount, amount_paid, total_amount, source'
+      'id, confirmation_code, band_name, customer_name, customer_phone, customer_email, start_at, end_at, status, deposit_amount, amount_paid, total_amount, source, payment_proof_url, booking_equipment(price_at_booking, equipment(name))'
     )
     .neq('status', 'cancelled')
     .order('start_at')
@@ -27,6 +27,12 @@ export default async function CalendarPage() {
     amount_paid: b.amount_paid,
     total_amount: b.total_amount,
     source: b.source as BookingEvent['source'],
+    payment_proof_url: b.payment_proof_url,
+    equipment: (b.booking_equipment ?? []).map((be) => {
+      const equip = be.equipment as { name: string } | { name: string }[] | null
+      const name = Array.isArray(equip) ? equip[0]?.name : equip?.name
+      return { name: name ?? 'Unknown', price: be.price_at_booking }
+    }),
   }))
 
   return (

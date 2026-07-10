@@ -5,15 +5,26 @@ import { useRouter } from 'next/navigation'
 import ReviewSummary from '@/components/booking/ReviewSummary'
 import { createBooking } from '@/lib/actions/createBooking'
 
+interface EquipmentOption {
+  id: string
+  name: string
+  price_per_session: number
+}
+
 interface ReviewPageProps {
   date: string
   start: string
   end: string
   payment: 'full' | 'deposit'
+  service: string
+  serviceLabel: string
+  rateCents: number
+  depositPct: number
   contactName: string
   email: string
   phone: string
   bandName: string
+  equipment: EquipmentOption[]
 }
 
 export default function ReviewPage({
@@ -21,10 +32,15 @@ export default function ReviewPage({
   start,
   end,
   payment,
+  service,
+  serviceLabel,
+  rateCents,
+  depositPct,
   contactName,
   email,
   phone,
   bandName,
+  equipment,
 }: ReviewPageProps) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -35,11 +51,13 @@ export default function ReviewPage({
       date,
       start,
       end,
+      service,
       payment,
       contactName,
       email,
       phone,
       bandName,
+      equipmentIds: equipment.map((item) => item.id),
     })
     if (result.success) {
       router.push(`/book/confirm?code=${result.code}`)
@@ -60,10 +78,15 @@ export default function ReviewPage({
         start={start}
         end={end}
         payment={payment}
+        service={service}
+        serviceLabel={serviceLabel}
+        rateCents={rateCents}
+        depositPct={depositPct}
         contactName={contactName}
         email={email}
         phone={phone}
         bandName={bandName}
+        equipment={equipment}
         onConfirm={handleConfirm}
       />
     </>
