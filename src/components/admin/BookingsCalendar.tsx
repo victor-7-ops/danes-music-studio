@@ -76,6 +76,8 @@ export function BookingsCalendar({
         style={{ height: 700 }}
         startAccessor="start"
         endAccessor="end"
+        min={new Date(0, 0, 0, 9, 0, 0)}
+        max={new Date(0, 0, 0, 22, 0, 0)}
       />
       {selected && (
         <BookingDrawer

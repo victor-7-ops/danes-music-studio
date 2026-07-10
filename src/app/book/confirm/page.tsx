@@ -35,7 +35,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16 text-center">
         <div className="mb-8">
-          <DmsHero />
+          <DmsHero dark />
         </div>
 
         <h1 className="font-display text-6xl uppercase text-ink mb-4">
@@ -65,7 +65,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
     return (
       <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16 text-center">
         <div className="mb-8">
-          <DmsHero />
+          <DmsHero dark />
         </div>
 
         <h1 className="font-display text-6xl uppercase text-ink mb-4">
@@ -101,7 +101,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
   return (
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16 text-center">
       <div className="mb-8">
-        <DmsHero />
+        <DmsHero dark />
       </div>
 
       <h1 className="font-display text-6xl uppercase text-ink mb-4">

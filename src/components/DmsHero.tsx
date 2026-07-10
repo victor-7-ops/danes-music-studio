@@ -19,7 +19,9 @@ const BARS = [
   { h: 18, delay: '0.08s' },
 ]
 
-export function DmsHero() {
+export function DmsHero({ dark = false }: { dark?: boolean }) {
+  const color = dark ? '#0B0B0C' : 'var(--wave-color, white)'
+
   return (
     <>
       <style>{`
@@ -49,7 +51,7 @@ export function DmsHero() {
                 width: 4,
                 height: bar.h,
                 borderRadius: 4,
-                backgroundColor: 'var(--wave-color, #0B0B0C)',
+                backgroundColor: color,
                 animation: `wave 1.4s ease-in-out infinite`,
                 animationDelay: bar.delay,
                 transformOrigin: 'center center',
@@ -58,9 +60,8 @@ export function DmsHero() {
           ))}
         </div>
 
-        {/* DMS logo — transparent PNG (bg already removed) */}
         <Image
-          src="/dms-removebg-preview.png"
+          src={dark ? '/dms-removebg-preview.png' : '/dms-white.png'}
           alt="Danes Music Studio"
           width={320}
           height={104}

@@ -36,7 +36,7 @@ export default async function Page() {
           </div>
 
           <h1 className="font-display text-6xl sm:text-8xl uppercase tracking-tight text-white leading-none mb-4">
-            Rehearsal Studio
+            Music Studio
           </h1>
 
           <p className="font-sans text-base text-white/70 max-w-xs leading-relaxed mb-6">
