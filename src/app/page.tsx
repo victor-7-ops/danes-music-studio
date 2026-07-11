@@ -30,8 +30,10 @@ const JSON_LD = {
     closes: '22:00',
   },
   sameAs: [
+    'https://www.facebook.com/DaneMusicStudio',
     'https://www.instagram.com/danes.studio',
     'https://www.youtube.com/@dmsproductions-ceb',
+    'https://dmsstudio.carrd.co',
   ],
 }
 
