@@ -22,6 +22,12 @@ const JSON_LD = {
     postalCode: '6000',
     addressCountry: 'PH',
   },
+  geo: {
+    '@type': 'GeoCoordinates',
+    latitude: 10.2904186,
+    longitude: 123.864584,
+  },
+  hasMap: 'https://maps.app.goo.gl/q2jAtE7dqVpUWhZK7',
   openingHoursSpecification: {
     '@type': 'OpeningHoursSpecification',
     dayOfWeek: [
@@ -103,7 +109,7 @@ export default async function Page() {
           </p>
 
           <a
-            href="https://maps.app.goo.gl/aWf4SFa3uhcY75Pe9"
+            href="https://maps.app.goo.gl/q2jAtE7dqVpUWhZK7"
             target="_blank"
             rel="noopener noreferrer"
             className="font-sans text-sm text-white/50 underline underline-offset-2 mt-3"

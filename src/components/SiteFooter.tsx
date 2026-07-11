@@ -34,15 +34,13 @@ const SOCIALS = [
 ]
 
 export function SiteFooter() {
-  const mapQuery = encodeURIComponent('Jumalon St, Laguna Basak, Pardo, Cebu City, Philippines 6000')
-
   return (
     <footer className="bg-black">
-      {/* Map */}
+      {/* Map — pinned to the studio's actual Google Maps listing (10.2904186, 123.864584) */}
       <div className="relative w-full h-80">
         <iframe
           title="Danes Music Studio location"
-          src={`https://www.google.com/maps?q=${mapQuery}&output=embed`}
+          src="https://www.google.com/maps?q=Danes+Music+Studio,10.2904186,123.864584&z=17&output=embed"
           className="absolute inset-0 w-full h-full border-0 grayscale invert-[0.92] contrast-[1.1]"
           loading="lazy"
           referrerPolicy="no-referrer-when-downgrade"
