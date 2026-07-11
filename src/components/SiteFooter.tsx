@@ -36,23 +36,40 @@ const SOCIALS = [
 export function SiteFooter() {
   return (
     <footer className="bg-black">
-      {/* Map — pinned to the studio's actual Google Maps listing (10.2904186, 123.864584) */}
-      <div className="relative w-full h-80">
-        <iframe
-          title="Danes Music Studio location"
-          src="https://www.google.com/maps?q=Danes+Music+Studio,10.2904186,123.864584&z=17&output=embed"
-          className="absolute inset-0 w-full h-full border-0 grayscale invert-[0.92] contrast-[1.1]"
-          loading="lazy"
-          referrerPolicy="no-referrer-when-downgrade"
-        />
-      </div>
-
-      <div className="px-6 py-12 flex flex-col items-center text-center gap-6">
-        <p className="font-display text-2xl uppercase text-white tracking-wide">
-          Danes Music Studio
+      <div className="px-6 py-16 flex flex-col items-center text-center gap-6">
+        {/* Find Us */}
+        <h2 className="font-display text-3xl uppercase text-white tracking-wide">
+          Find Us
+        </h2>
+        <p className="font-sans text-sm text-white/50 -mt-4">
+          Jumalon St., Laguna Basak, Pardo, Cebu City
         </p>
-        <p className="font-sans text-sm text-white/50">
-          Jumalon St., Laguna Basak, Pardo, Cebu City &middot; Daily 9 AM–10 PM
+
+        {/* Contained map — not full-bleed */}
+        <div className="relative w-full max-w-2xl h-80 rounded-lg overflow-hidden border border-white/10">
+          <iframe
+            title="Danes Music Studio location"
+            src="https://www.google.com/maps?q=Danes+Music+Studio,10.2904186,123.864584&z=17&output=embed"
+            className="absolute inset-0 w-full h-full border-0 grayscale invert-[0.92] contrast-[1.1]"
+            loading="lazy"
+            referrerPolicy="no-referrer-when-downgrade"
+          />
+        </div>
+
+        <a
+          href="https://maps.app.goo.gl/q2jAtE7dqVpUWhZK7"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 rounded-full bg-white text-ink px-6 py-3 font-sans text-sm font-medium uppercase tracking-wide hover:opacity-80 transition-opacity"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7Zm0 9.5A2.5 2.5 0 1 1 12 6.5a2.5 2.5 0 0 1 0 5Z" />
+          </svg>
+          Get Directions
+        </a>
+
+        <p className="font-sans text-sm text-white/50 mt-2">
+          Daily 9 AM–10 PM
         </p>
 
         {/* Social buttons */}
