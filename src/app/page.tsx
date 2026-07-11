@@ -3,7 +3,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { createClient } from '@/lib/supabase/server'
 import { DmsHero } from '@/components/DmsHero'
-import { FeatureWallMarquee } from '@/components/FeatureWallMarquee'
+import { GrainOverlay } from '@/components/GrainOverlay'
+import { InsideStudioStrip } from '@/components/InsideStudioStrip'
 
 export default async function Page() {
   const supabase = await createClient()
@@ -16,12 +17,36 @@ export default async function Page() {
   return (
     <main className="min-h-screen bg-bg flex flex-col">
 
-      {/* Hero — full-screen background */}
+      {/* Hero — cinematic full-bleed session photo */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden bg-black">
-        {/* Feature wall — drifting photo marquee, logo stays fixed on top */}
-        <FeatureWallMarquee />
-        {/* Dark overlay — heavier than a static photo since the marquee is busier/in motion */}
-        <div className="absolute inset-0 bg-black/75" />
+        <Image
+          src="/hero/studio-session.jpg"
+          alt=""
+          fill
+          priority
+          className="object-cover"
+          style={{ objectPosition: '50% 35%' }}
+          sizes="100vw"
+        />
+
+        {/* Vignette — heavy at the edges, clear through the center where the photo's subject is */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(ellipse 70% 60% at 50% 40%, rgba(0,0,0,0.35) 0%, rgba(0,0,0,0.75) 60%, rgba(0,0,0,0.92) 100%)',
+          }}
+        />
+        {/* Bottom gradient — grounds the CTA area in solid black so text never fights the photo */}
+        <div className="absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black via-black/70 to-transparent" />
+
+        {/* Warm amber glow behind the logo — the one accent color, pulled from the room's own wood tones */}
+        <div
+          className="absolute left-1/2 top-[30%] -translate-x-1/2 -translate-y-1/2 h-[420px] w-[420px] rounded-full blur-[100px]"
+          style={{ backgroundColor: 'rgba(200, 130, 60, 0.25)' }}
+        />
+
+        <GrainOverlay opacity={0.06} />
 
         {/* Content */}
         <div className="relative z-10 flex flex-col items-center text-center">
@@ -58,6 +83,8 @@ export default async function Page() {
           </Link>
         </div>
       </section>
+
+      <InsideStudioStrip />
 
       {urls.length > 0 && (
         <section className="w-full max-w-4xl mx-auto mt-16 px-6 pb-16">
