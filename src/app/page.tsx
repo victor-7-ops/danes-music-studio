@@ -6,6 +6,35 @@ import { DmsHero } from '@/components/DmsHero'
 import { GrainOverlay } from '@/components/GrainOverlay'
 import { InsideStudioStrip } from '@/components/InsideStudioStrip'
 
+const JSON_LD = {
+  '@context': 'https://schema.org',
+  '@type': 'LocalBusiness',
+  name: 'Danes Music Studio',
+  image: 'https://danesmusicstudio.vercel.app/hero/studio-session.jpg',
+  url: 'https://danesmusicstudio.vercel.app',
+  email: 'dlivesessions@gmail.com',
+  priceRange: '₱₱',
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: 'Jumalon St., Laguna Basak',
+    addressLocality: 'Pardo, Cebu City',
+    postalCode: '6000',
+    addressCountry: 'PH',
+  },
+  openingHoursSpecification: {
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: [
+      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday',
+    ],
+    opens: '09:00',
+    closes: '22:00',
+  },
+  sameAs: [
+    'https://www.instagram.com/danes.studio',
+    'https://www.youtube.com/@dmsproductions-ceb',
+  ],
+}
+
 export default async function Page() {
   const supabase = await createClient()
   const { data: files } = await supabase.storage.from('studio-photos').list()
@@ -16,6 +45,10 @@ export default async function Page() {
 
   return (
     <main className="min-h-screen bg-bg flex flex-col">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(JSON_LD) }}
+      />
 
       {/* Hero — cinematic full-bleed session photo */}
       <section className="relative min-h-screen flex flex-col items-center justify-center px-6 overflow-hidden bg-black">
@@ -93,7 +126,7 @@ export default async function Page() {
               <div key={i} className="relative aspect-square bg-border overflow-hidden">
                 <Image
                   src={url}
-                  alt="Studio"
+                  alt="Danes Music Studio — Pardo, Cebu City recording and rehearsal room"
                   fill
                   className="object-cover"
                   sizes="(min-width: 640px) 33vw, 50vw"
