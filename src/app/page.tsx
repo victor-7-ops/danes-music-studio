@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/server'
 import { DmsHero } from '@/components/DmsHero'
 import { GrainOverlay } from '@/components/GrainOverlay'
 import { InsideStudioStrip } from '@/components/InsideStudioStrip'
+import { SiteFooter } from '@/components/SiteFooter'
 
 const JSON_LD = {
   '@context': 'https://schema.org',
@@ -139,6 +140,7 @@ export default async function Page() {
         </section>
       )}
 
+      <SiteFooter />
     </main>
   )
 }
