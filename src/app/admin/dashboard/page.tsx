@@ -5,6 +5,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatPHP } from '@/lib/emails/format'
 import { StatCard } from '@/components/admin/StatCard'
+import { getPreviousPeriod } from '@/lib/dashboardPeriod'
 
 interface DashboardStats {
   collected: number
@@ -55,7 +56,21 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .select('operating_open, operating_close')
     .single()
 
+  // Fetch bookings for the equivalent prior period (period-over-period comparison)
+  const { prevFrom, prevTo } = getPreviousPeriod(from, to)
+  const { data: prevBookings } = await supabase
+    .from('bookings')
+    .select('amount_paid, status')
+    .gte('start_at', `${prevFrom}T00:00:00+08:00`)
+    .lte('start_at', `${prevTo}T23:59:59+08:00`)
+
   const data = bookings ?? []
+  const prevData = prevBookings ?? []
+
+  // Prior-period collected (same reduce logic as current period, below)
+  const prevCollected = prevData
+    .filter((b) => b.status === 'confirmed' || b.status === 'completed')
+    .reduce((s, b) => s + Number(b.amount_paid), 0)
 
   // Revenue aggregates (integer centavo arithmetic)
   const collected = data
@@ -226,6 +241,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             value={formatPHP(stats.collected)}
             sub="Confirmed + completed"
             accent
+            currentValue={stats.collected}
+            previousValue={prevCollected}
           />
           <StatCard
             label="Outstanding"
