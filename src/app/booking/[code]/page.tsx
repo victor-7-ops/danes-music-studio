@@ -99,18 +99,18 @@ export default async function ManageBookingPage({ params, searchParams }: PagePr
 
       {canModify && (
         <div className="flex flex-col gap-3 w-full max-w-sm">
-          <a
-            href={`/api/booking/reschedule?token=${token}`}
+          <Link
+            href={`/booking/${booking.confirmation_code}/reschedule-confirm?token=${token}`}
             className="bg-ink text-bg px-6 py-3 font-sans text-sm uppercase tracking-widest hover:opacity-80 transition-opacity"
           >
             Reschedule
-          </a>
-          <a
-            href={`/api/booking/cancel?token=${token}`}
+          </Link>
+          <Link
+            href={`/booking/${booking.confirmation_code}/cancel-confirm?token=${token}`}
             className="border border-ink/20 text-ink px-6 py-3 font-sans text-sm uppercase tracking-widest hover:bg-ink/5 transition-colors"
           >
             Cancel Booking
-          </a>
+          </Link>
         </div>
       )}
 
