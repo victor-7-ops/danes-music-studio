@@ -3,9 +3,24 @@ interface StatCardProps {
   value: string
   sub?: string
   accent?: boolean
+  /** Previous-period value (same unit as currentValue) for a period-over-period delta. */
+  previousValue?: number
+  /** Current-period raw numeric value, paired with previousValue to compute the delta. */
+  currentValue?: number
 }
 
-export function StatCard({ label, value, sub, accent }: StatCardProps) {
+export function StatCard({ label, value, sub, accent, previousValue, currentValue }: StatCardProps) {
+  let deltaLabel: string | null = null
+  if (previousValue !== undefined && currentValue !== undefined) {
+    if (previousValue === 0) {
+      deltaLabel = currentValue === 0 ? null : 'new vs. last period'
+    } else {
+      const deltaPct = Math.round(((currentValue - previousValue) / previousValue) * 100)
+      const sign = deltaPct > 0 ? '+' : ''
+      deltaLabel = `${sign}${deltaPct}% vs. last period`
+    }
+  }
+
   return (
     <div className={`border p-5 flex flex-col gap-1.5 ${accent ? 'border-ink bg-ink text-bg' : 'border-ink/20 bg-bg'}`}>
       <span className={`font-sans text-[10px] uppercase tracking-[0.15em] ${accent ? 'text-bg/60' : 'text-muted'}`}>
@@ -16,6 +31,11 @@ export function StatCard({ label, value, sub, accent }: StatCardProps) {
       </span>
       {sub && (
         <span className={`font-sans text-xs ${accent ? 'text-bg/60' : 'text-muted'}`}>{sub}</span>
+      )}
+      {deltaLabel && (
+        <span className={`font-sans text-xs tabular-nums ${accent ? 'text-bg/80' : 'text-ink/70'}`}>
+          {deltaLabel}
+        </span>
       )}
     </div>
   )
