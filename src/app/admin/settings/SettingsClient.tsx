@@ -25,7 +25,9 @@ interface FormState {
   reminderEnabled: boolean
   ratePerHourDisplay: number // in pesos (centavos / 100)
   gcashQrUrl: string
-  bankDetails: string
+  bankName: string
+  accountName: string
+  accountNumber: string
 }
 
 interface SettingsClientProps {
@@ -47,6 +49,9 @@ export default function SettingsClient({
   const [loading, setLoading] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  const [qrUploading, setQrUploading] = useState(false)
+  const [qrError, setQrError] = useState<string | null>(null)
 
   const [gcalEmail, setGcalEmail] = useState<string | null>(initialGcalEmail)
   const [gcalConnected, setGcalConnected] = useState(initialGcalConnected)
@@ -115,6 +120,62 @@ export default function SettingsClient({
       setGcalFeedback(result.error ?? 'Disconnect failed.')
     }
     setGcalLoading(false)
+  }
+
+  async function handleQrUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    e.target.value = '' // allow re-selecting the same file later
+    if (!file) return
+
+    if (!file.type.startsWith('image/')) {
+      setQrError('Upload an image file.')
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setQrError('Image too large (max 5MB).')
+      return
+    }
+
+    setQrUploading(true)
+    setQrError(null)
+
+    const supabase = createClient()
+    const ext = file.name.split('.').pop() || 'png'
+    const path = `qr-${Date.now()}.${ext}`
+
+    const { error: uploadError } = await supabase.storage
+      .from('payment-qr')
+      .upload(path, file, { contentType: file.type, upsert: false })
+
+    if (uploadError) {
+      setQrError('Upload failed: ' + uploadError.message)
+      setQrUploading(false)
+      return
+    }
+
+    const { data: publicUrlData } = supabase.storage.from('payment-qr').getPublicUrl(path)
+    const newUrl = publicUrlData.publicUrl
+
+    // Saves immediately — QR image is independent of the rest of the settings form.
+    const result = await updateSettings({
+      operatingOpen: form.operatingOpen,
+      operatingClose: form.operatingClose,
+      holdWindowMinutes: form.holdWindowMinutes,
+      defaultDepositPct: form.defaultDepositPct,
+      reminderEnabled: form.reminderEnabled,
+      ratePerHour: Math.round(form.ratePerHourDisplay * 100),
+      gcashQrUrl: newUrl,
+      bankName: form.bankName,
+      accountName: form.accountName,
+      accountNumber: form.accountNumber,
+    })
+
+    if (result.success) {
+      setForm((f) => ({ ...f, gcashQrUrl: newUrl }))
+    } else {
+      setQrError(result.error ?? 'Failed to save QR image.')
+    }
+    setQrUploading(false)
   }
 
   async function handleAddEquipment(e: React.FormEvent) {
@@ -193,7 +254,9 @@ export default function SettingsClient({
       reminderEnabled: form.reminderEnabled,
       ratePerHour: Math.round(form.ratePerHourDisplay * 100),
       gcashQrUrl: form.gcashQrUrl,
-      bankDetails: form.bankDetails,
+      bankName: form.bankName,
+      accountName: form.accountName,
+      accountNumber: form.accountNumber,
     })
 
     if (result.success) {
@@ -307,36 +370,81 @@ export default function SettingsClient({
         </div>
 
         {/* Manual Payment */}
-        <div>
-          <p className={`${labelClass} mb-3`}>Manual Payment (GCash / Bank)</p>
+        <div className="border border-ink/20 p-5">
+          <p className={`${labelClass} mb-4`}>Bank Transfer (InstaPay)</p>
           <div className="space-y-4">
             <label className="block">
-              <span className={labelClass}>GCash QR image URL</span>
+              <span className={labelClass}>Bank name</span>
               <input
-                type="url"
+                type="text"
                 className={inputClass}
-                placeholder="https://.../gcash-qr.png"
-                value={form.gcashQrUrl}
+                placeholder="GCASH"
+                value={form.bankName}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, gcashQrUrl: e.target.value }))
+                  setForm((f) => ({ ...f, bankName: e.target.value }))
                 }
               />
             </label>
             <label className="block">
-              <span className={labelClass}>Bank / other payment details</span>
-              <textarea
-                rows={3}
+              <span className={labelClass}>Account name</span>
+              <input
+                type="text"
                 className={inputClass}
-                placeholder="BDO 1234-5678-90 · Danes Music Studio"
-                value={form.bankDetails}
+                placeholder="Juan Dela Cruz"
+                value={form.accountName}
                 onChange={(e) =>
-                  setForm((f) => ({ ...f, bankDetails: e.target.value }))
+                  setForm((f) => ({ ...f, accountName: e.target.value }))
                 }
               />
             </label>
+            <label className="block">
+              <span className={labelClass}>Account number</span>
+              <input
+                type="text"
+                className={inputClass}
+                placeholder="0012 3456 7890"
+                value={form.accountNumber}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, accountNumber: e.target.value }))
+                }
+              />
+            </label>
+            <div>
+              <span className={`${labelClass} block mb-2`}>QR code (InstaPay / GCash / any bank)</span>
+              <div className="flex items-center gap-4">
+                {form.gcashQrUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={form.gcashQrUrl}
+                    alt="Payment QR code"
+                    className="h-20 w-20 border border-ink/20 object-contain bg-bg"
+                  />
+                ) : (
+                  <div className="h-20 w-20 border border-dashed border-ink/20 flex items-center justify-center">
+                    <span className="font-sans text-[10px] text-muted uppercase tracking-widest">No QR</span>
+                  </div>
+                )}
+                <label className="cursor-pointer">
+                  <span className="inline-block bg-ink/5 text-ink px-4 py-2 font-sans text-sm hover:bg-ink/10 transition-colors uppercase tracking-widest">
+                    {qrUploading ? 'Uploading...' : form.gcashQrUrl ? 'Replace QR' : 'Upload QR'}
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    disabled={qrUploading}
+                    onChange={handleQrUpload}
+                  />
+                </label>
+              </div>
+              {qrError && (
+                <p className="mt-2 font-sans text-sm text-red-600">{qrError}</p>
+              )}
+            </div>
           </div>
-          <p className="mt-1 font-sans text-xs text-muted">
-            Shown to customers on the payment page. Leave both blank to disable manual payment.
+          <p className="mt-4 font-sans text-xs text-muted">
+            Shown to customers on their booking ticket so they can pay via InstaPay. QR uploads save
+            immediately.
           </p>
         </div>
 

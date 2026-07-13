@@ -15,7 +15,9 @@ const DEFAULTS = {
   reminderEnabled: true,
   ratePerHourDisplay: 350,
   gcashQrUrl: '',
-  bankDetails: '',
+  bankName: '',
+  accountName: '',
+  accountNumber: '',
 }
 
 export default async function SettingsPage() {
@@ -54,7 +56,9 @@ export default async function SettingsPage() {
       reminderEnabled: s.reminder_enabled,
       ratePerHourDisplay: Math.round(st.rate_per_hour / 100),
       gcashQrUrl: s.gcash_qr_url ?? '',
-      bankDetails: s.bank_details ?? '',
+      bankName: s.bank_name ?? '',
+      accountName: s.account_name ?? '',
+      accountNumber: s.account_number ?? '',
     }
   }
 

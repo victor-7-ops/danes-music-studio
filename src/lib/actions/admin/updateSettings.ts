@@ -9,8 +9,10 @@ export interface UpdateSettingsParams {
   defaultDepositPct: number
   reminderEnabled: boolean
   ratePerHour: number         // integer centavos
-  gcashQrUrl: string          // empty string = unset
-  bankDetails: string         // empty string = unset
+  gcashQrUrl: string          // empty string = unset — public URL of the uploaded QR image
+  bankName: string            // empty string = unset
+  accountName: string         // empty string = unset
+  accountNumber: string       // empty string = unset
 }
 
 export async function updateSettings(
@@ -22,7 +24,7 @@ export async function updateSettings(
   } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Unauthorized' }
 
-  const { operatingOpen, operatingClose, holdWindowMinutes, defaultDepositPct, reminderEnabled, ratePerHour, gcashQrUrl, bankDetails } = params
+  const { operatingOpen, operatingClose, holdWindowMinutes, defaultDepositPct, reminderEnabled, ratePerHour, gcashQrUrl, bankName, accountName, accountNumber } = params
 
   const timeOk = /^\d{2}:\d{2}$/.test(operatingOpen) && /^\d{2}:\d{2}$/.test(operatingClose)
   if (!timeOk) return { success: false, error: 'Invalid time format.' }
@@ -56,7 +58,9 @@ export async function updateSettings(
       default_deposit_pct: defaultDepositPct,
       reminder_enabled: reminderEnabled,
       gcash_qr_url: gcashQrUrl.trim() || null,
-      bank_details: bankDetails.trim() || null,
+      bank_name: bankName.trim() || null,
+      account_name: accountName.trim() || null,
+      account_number: accountNumber.trim() || null,
     })
     .eq('id', settings.id)
 
