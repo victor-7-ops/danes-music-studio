@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { SERVICES, isServiceSlug } from '@/lib/services'
 import { computeTotal } from '@/lib/slotSelection'
+import { getUnavailableEquipment } from '@/lib/equipmentAvailability'
 
 export interface CreateBookingParams {
   date: string       // "YYYY-MM-DD"
@@ -63,7 +64,7 @@ export async function createBooking(
     equipmentIds.length > 0
       ? supabase
           .from('equipment')
-          .select('id, price_per_session')
+          .select('id, name, price_per_session, quantity')
           .in('id', equipmentIds)
           .eq('active', true)
       : Promise.resolve({ data: [], error: null }),
@@ -95,15 +96,56 @@ export async function createBooking(
     equipment_total
   )
 
-  // 5. Generate confirmation code
-  const chars = crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 4)
-  const code = `DMS-${chars}`
-
-  // 6. Compute timestamps
+  // 5. Compute timestamps
   const start_at = `${date}T${start}:00+08:00`
   const end_at = `${date}T${end}:00+08:00`
   // Hold window from settings table — never hardcoded (CLAUDE.md invariant 4)
   const hold_expires_at = new Date(Date.now() + settings.hold_window_minutes * 60_000).toISOString()
+
+  // 5b. Equipment conflict check — single-unit (or quantity-limited) gear:
+  // reject if any requested item has no free unit left for this time range.
+  // Non-cancelled bookings only, mirrors bookings_no_overlap's own filter.
+  if (selectedEquipment.length > 0) {
+    const { data: usageRows, error: usageError } = await supabase
+      .from('booking_equipment')
+      .select('equipment_id, bookings!inner(status, start_at, end_at)')
+      .in(
+        'equipment_id',
+        selectedEquipment.map(item => item.id)
+      )
+      .neq('bookings.status', 'cancelled')
+
+    if (usageError) {
+      return { success: false, error: 'Equipment configuration error.' }
+    }
+
+    const existingUsage = (usageRows ?? []).map(row => {
+      const booking = Array.isArray(row.bookings) ? row.bookings[0] : row.bookings
+      return {
+        equipmentId: row.equipment_id as string,
+        startAt: new Date(booking.start_at as string),
+        endAt: new Date(booking.end_at as string),
+      }
+    })
+
+    const unavailable = getUnavailableEquipment(
+      selectedEquipment.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })),
+      existingUsage,
+      new Date(start_at),
+      new Date(end_at)
+    )
+
+    if (unavailable.length > 0) {
+      return {
+        success: false,
+        error: `${unavailable.map(item => item.name).join(', ')} ${unavailable.length === 1 ? 'is' : 'are'} unavailable for the selected time.`,
+      }
+    }
+  }
+
+  // 6. Generate confirmation code
+  const chars = crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 4)
+  const code = `DMS-${chars}`
 
   // 7. Insert into bookings
   const { data: inserted, error: insertError } = await supabase
