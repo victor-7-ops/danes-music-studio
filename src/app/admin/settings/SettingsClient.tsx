@@ -13,6 +13,7 @@ interface EquipmentRow {
   id: string
   name: string
   price_per_session: number
+  quantity: number
   active: boolean
 }
 
@@ -56,6 +57,7 @@ export default function SettingsClient({
   const [equipment, setEquipment] = useState<EquipmentRow[]>(initialEquipment)
   const [newEquipName, setNewEquipName] = useState('')
   const [newEquipPrice, setNewEquipPrice] = useState<number | ''>('')
+  const [newEquipQuantity, setNewEquipQuantity] = useState<number | ''>(1)
   const [equipError, setEquipError] = useState<string | null>(null)
   const [equipLoading, setEquipLoading] = useState(false)
 
@@ -65,7 +67,7 @@ export default function SettingsClient({
     const supabase = createClient()
     const { data } = await supabase
       .from('equipment')
-      .select('id, name, price_per_session, active')
+      .select('id, name, price_per_session, quantity, active')
       .order('sort_order')
       .order('created_at')
     setEquipment(data ?? [])
@@ -122,14 +124,20 @@ export default function SettingsClient({
       setEquipError('Enter a name and a valid price.')
       return
     }
+    if (newEquipQuantity === '' || !Number.isInteger(newEquipQuantity) || newEquipQuantity < 1) {
+      setEquipError('Quantity must be a positive whole number.')
+      return
+    }
     setEquipLoading(true)
     const result = await createEquipment({
       name: newEquipName,
       pricePerSession: Math.round(newEquipPrice * 100),
+      quantity: newEquipQuantity,
     })
     if (result.success) {
       setNewEquipName('')
       setNewEquipPrice('')
+      setNewEquipQuantity(1)
       await reloadEquipment()
     } else {
       setEquipError(result.error ?? 'Failed to add equipment.')
@@ -140,6 +148,18 @@ export default function SettingsClient({
   async function handleToggleEquipment(id: string, active: boolean) {
     setEquipLoading(true)
     const result = await updateEquipment(id, { active: !active })
+    if (result.success) {
+      await reloadEquipment()
+    } else {
+      setEquipError(result.error ?? 'Failed to update equipment.')
+    }
+    setEquipLoading(false)
+  }
+
+  async function handleUpdateQuantity(id: string, quantity: number) {
+    if (!Number.isInteger(quantity) || quantity < 1) return
+    setEquipLoading(true)
+    const result = await updateEquipment(id, { quantity })
     if (result.success) {
       await reloadEquipment()
     } else {
@@ -421,6 +441,23 @@ export default function SettingsClient({
                 <div className="font-sans text-sm text-ink tabular-nums">
                   ₱{(item.price_per_session / 100).toLocaleString('en-PH')}
                 </div>
+                <label className="flex items-center gap-1">
+                  <span className="font-sans text-xs text-muted">Qty</span>
+                  <input
+                    type="number"
+                    min={1}
+                    step={1}
+                    value={item.quantity}
+                    disabled={equipLoading}
+                    onChange={(e) => {
+                      const value = Number(e.target.value)
+                      if (Number.isInteger(value) && value >= 1) {
+                        handleUpdateQuantity(item.id, value)
+                      }
+                    }}
+                    className="w-16 border border-ink/20 bg-bg px-1 py-1 font-sans text-sm text-center focus:outline-none focus:border-ink disabled:opacity-50"
+                  />
+                </label>
                 <button
                   type="button"
                   onClick={() => handleToggleEquipment(item.id, item.active)}
@@ -463,6 +500,19 @@ export default function SettingsClient({
               value={newEquipPrice}
               onChange={(e) =>
                 setNewEquipPrice(e.target.value === '' ? '' : Number(e.target.value))
+              }
+            />
+          </label>
+          <label className="block w-24">
+            <span className={labelClass}>Quantity</span>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              className={inputClass}
+              value={newEquipQuantity}
+              onChange={(e) =>
+                setNewEquipQuantity(e.target.value === '' ? '' : Number(e.target.value))
               }
             />
           </label>

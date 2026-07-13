@@ -213,6 +213,7 @@ export type Database = {
           id: string
           name: string
           price_per_session: number
+          quantity: number
           sort_order: number
         }
         Insert: {
@@ -221,6 +222,7 @@ export type Database = {
           id?: string
           name: string
           price_per_session: number
+          quantity?: number
           sort_order?: number
         }
         Update: {
@@ -229,6 +231,7 @@ export type Database = {
           id?: string
           name?: string
           price_per_session?: number
+          quantity?: number
           sort_order?: number
         }
         Relationships: []

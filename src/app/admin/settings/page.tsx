@@ -30,7 +30,7 @@ export default async function SettingsPage() {
       .single(),
     supabase
       .from('equipment')
-      .select('id, name, price_per_session, active')
+      .select('id, name, price_per_session, quantity, active')
       .order('sort_order')
       .order('created_at'),
     supabase.from('google_tokens').select('google_email').single(),

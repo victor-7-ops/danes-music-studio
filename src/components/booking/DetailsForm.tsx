@@ -21,21 +21,28 @@ interface DetailsFormProps {
   depositPct: number
   equipment: EquipmentOption[]
   initialEquipmentIds?: string[]
+  // Equipment ids that are already at capacity for this exact date/start/end
+  // (computed server-side — see src/app/book/details/page.tsx). Rendered as
+  // disabled/unavailable so customers see it before checkout, not as a late
+  // server rejection on submit.
+  unavailableEquipmentIds?: string[]
 }
 
 function formatCents(cents: number): string {
   return `₱${(cents / 100).toLocaleString('en-PH')}`
 }
 
-export default function DetailsForm({ date, start, end, payment, service, rateCents, depositPct, equipment, initialEquipmentIds }: DetailsFormProps) {
+export default function DetailsForm({ date, start, end, payment, service, rateCents, depositPct, equipment, initialEquipmentIds, unavailableEquipmentIds }: DetailsFormProps) {
   const router = useRouter()
+
+  const unavailableIds = new Set(unavailableEquipmentIds ?? [])
 
   const [bandName, setBandName] = useState('')
   const [contactName, setContactName] = useState('')
   const [phone, setPhone] = useState('')
   const [email, setEmail] = useState('')
   const [selectedEquipment, setSelectedEquipment] = useState<Set<string>>(
-    new Set(initialEquipmentIds ?? [])
+    new Set((initialEquipmentIds ?? []).filter((id) => !unavailableIds.has(id)))
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -124,25 +131,34 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
         <div className="mb-8">
           <p className={labelClass}>Add Gear (optional)</p>
           <div className="border border-border divide-y divide-border">
-            {equipment.map((item) => (
-              <label
-                key={item.id}
-                className="flex items-center justify-between gap-3 px-3 py-2 cursor-pointer"
-              >
-                <span className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    checked={selectedEquipment.has(item.id)}
-                    onChange={() => toggleEquipment(item.id)}
-                    className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
-                  />
-                  <span className="font-sans text-sm text-ink">{item.name}</span>
-                </span>
-                <span className="font-sans text-sm text-muted tabular-nums">
-                  +{formatCents(item.price_per_session)}
-                </span>
-              </label>
-            ))}
+            {equipment.map((item) => {
+              const unavailable = unavailableIds.has(item.id)
+              return (
+                <label
+                  key={item.id}
+                  className={`flex items-center justify-between gap-3 px-3 py-2 ${unavailable ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}
+                >
+                  <span className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedEquipment.has(item.id)}
+                      onChange={() => toggleEquipment(item.id)}
+                      disabled={unavailable}
+                      className="cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2 disabled:cursor-not-allowed"
+                    />
+                    <span className="font-sans text-sm text-ink">{item.name}</span>
+                    {unavailable && (
+                      <span className="font-sans text-xs uppercase tracking-widest text-red-600">
+                        Unavailable for this time
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-sans text-sm text-muted tabular-nums">
+                    +{formatCents(item.price_per_session)}
+                  </span>
+                </label>
+              )
+            })}
           </div>
         </div>
       )}
