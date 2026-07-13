@@ -19,7 +19,9 @@ export async function GET(request: Request) {
     supabase
       .from('bookings')
       .select('start_at, end_at, status, hold_expires_at')
-      .in('status', ['confirmed', 'pending']),
+      .in('status', ['confirmed', 'pending'])
+      .gte('end_at', `${date}T00:00:00+08:00`)
+      .lte('start_at', `${date}T23:59:59+08:00`),
 
     supabase
       .from('blocked_slots')

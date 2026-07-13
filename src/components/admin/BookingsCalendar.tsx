@@ -55,13 +55,28 @@ function eventPropGetter(event: BookingEvent) {
 
 export function BookingsCalendar({
   bookings,
+  from,
+  to,
 }: {
   bookings: BookingEvent[]
+  from?: string
+  to?: string
 }) {
   const router = useRouter()
   const [selected, setSelected] = useState<BookingEvent | null>(null)
   const [view, setView] = useState<'week' | 'month' | 'day'>('week')
-  const [date, setDate] = useState(new Date())
+  const [date, setDate] = useState(() => (from ? new Date(`${from}T00:00:00`) : new Date()))
+
+  const handleNavigate = (d: Date) => {
+    setDate(d)
+    const monthFrom = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-01`
+    const monthTo = new Date(d.getFullYear(), d.getMonth() + 1, 0)
+      .toISOString()
+      .split('T')[0]
+    if (monthFrom !== from || monthTo !== to) {
+      router.push(`/admin/calendar?from=${monthFrom}&to=${monthTo}`)
+    }
+  }
 
   return (
     <div className="h-full">
@@ -71,7 +86,7 @@ export function BookingsCalendar({
         view={view}
         onView={(v) => setView(v as 'week' | 'month' | 'day')}
         date={date}
-        onNavigate={(d) => setDate(d)}
+        onNavigate={handleNavigate}
         views={['week', 'month', 'day']}
         eventPropGetter={eventPropGetter}
         onSelectEvent={(event) => setSelected(event as BookingEvent)}
