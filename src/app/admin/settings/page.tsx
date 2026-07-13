@@ -1,33 +1,13 @@
-'use client'
+// src/app/admin/settings/page.tsx
+// Admin settings — Server Component shell. Fetches settings, rate, equipment,
+// and Google Calendar connection state server-side; hands off to a client
+// island for form state, submit handlers, and interactive Google Calendar /
+// equipment CRUD actions.
 
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
-import { updateSettings } from '@/lib/actions/admin/updateSettings'
-import { connectGoogleCalendar } from '@/lib/actions/admin/connectGoogleCalendar'
-import { disconnectGoogleCalendar } from '@/lib/actions/admin/disconnectGoogleCalendar'
-import { syncGoogleCalendar } from '@/lib/actions/admin/syncGoogleCalendar'
-import { createEquipment, updateEquipment, deleteEquipment } from '@/lib/actions/admin/equipment'
+import { createClient } from '@/lib/supabase/server'
+import SettingsClient from './SettingsClient'
 
-interface EquipmentRow {
-  id: string
-  name: string
-  price_per_session: number
-  active: boolean
-}
-
-interface FormState {
-  operatingOpen: string
-  operatingClose: string
-  holdWindowMinutes: number
-  defaultDepositPct: number
-  reminderEnabled: boolean
-  ratePerHourDisplay: number // in pesos (centavos / 100)
-  gcashQrUrl: string
-  bankDetails: string
-}
-
-const DEFAULTS: FormState = {
+const DEFAULTS = {
   operatingOpen: '09:00',
   operatingClose: '22:00',
   holdWindowMinutes: 15,
@@ -38,493 +18,58 @@ const DEFAULTS: FormState = {
   bankDetails: '',
 }
 
-export default function SettingsPage() {
-  const [form, setForm] = useState<FormState>(DEFAULTS)
-  const [loading, setLoading] = useState(false)
-  const [fetchError, setFetchError] = useState<string | null>(null)
-  const [submitError, setSubmitError] = useState<string | null>(null)
-  const [success, setSuccess] = useState(false)
+export default async function SettingsPage() {
+  const supabase = await createClient()
 
-  const [gcalEmail, setGcalEmail] = useState<string | null>(null)
-  const [gcalConnected, setGcalConnected] = useState(false)
-  const [gcalLoading, setGcalLoading] = useState(false)
-  const [gcalFeedback, setGcalFeedback] = useState<string | null>(null)
-  const [syncResult, setSyncResult] = useState<string | null>(null)
-
-  const [equipment, setEquipment] = useState<EquipmentRow[]>([])
-  const [newEquipName, setNewEquipName] = useState('')
-  const [newEquipPrice, setNewEquipPrice] = useState<number | ''>('')
-  const [equipError, setEquipError] = useState<string | null>(null)
-  const [equipLoading, setEquipLoading] = useState(false)
-
-  const searchParams = useSearchParams()
-
-  async function reloadEquipment() {
-    const supabase = createClient()
-    const { data } = await supabase
+  const [settingsRes, serviceTypeRes, equipmentRes, gcalRes] = await Promise.all([
+    supabase.from('settings').select('*').single(),
+    supabase
+      .from('service_types')
+      .select('rate_per_hour')
+      .eq('name', 'Rehearsal')
+      .single(),
+    supabase
       .from('equipment')
       .select('id, name, price_per_session, active')
       .order('sort_order')
-      .order('created_at')
-    setEquipment(data ?? [])
+      .order('created_at'),
+    supabase.from('google_tokens').select('google_email').single(),
+  ])
+
+  let fetchError: string | null = null
+  let initialForm = DEFAULTS
+
+  if (settingsRes.error) {
+    fetchError = 'Failed to load settings: ' + settingsRes.error.message
+  } else if (serviceTypeRes.error) {
+    fetchError = 'Failed to load rate: ' + serviceTypeRes.error.message
+  } else {
+    const s = settingsRes.data
+    const st = serviceTypeRes.data
+    initialForm = {
+      operatingOpen: s.operating_open,
+      operatingClose: s.operating_close,
+      holdWindowMinutes: s.hold_window_minutes,
+      defaultDepositPct: s.default_deposit_pct,
+      reminderEnabled: s.reminder_enabled,
+      ratePerHourDisplay: Math.round(st.rate_per_hour / 100),
+      gcashQrUrl: s.gcash_qr_url ?? '',
+      bankDetails: s.bank_details ?? '',
+    }
   }
 
-  useEffect(() => {
-    async function loadSettings() {
-      const supabase = createClient()
-      const [settingsRes, serviceTypeRes] = await Promise.all([
-        supabase.from('settings').select('*').single(),
-        supabase
-          .from('service_types')
-          .select('rate_per_hour')
-          .eq('name', 'Rehearsal')
-          .single(),
-      ])
+  const initialEquipment = equipmentRes.data ?? []
 
-      if (settingsRes.error) {
-        setFetchError('Failed to load settings: ' + settingsRes.error.message)
-        return
-      }
-      if (serviceTypeRes.error) {
-        setFetchError('Failed to load rate: ' + serviceTypeRes.error.message)
-        return
-      }
-
-      const s = settingsRes.data
-      const st = serviceTypeRes.data
-
-      setForm({
-        operatingOpen: s.operating_open,
-        operatingClose: s.operating_close,
-        holdWindowMinutes: s.hold_window_minutes,
-        defaultDepositPct: s.default_deposit_pct,
-        reminderEnabled: s.reminder_enabled,
-        ratePerHourDisplay: Math.round(st.rate_per_hour / 100),
-        gcashQrUrl: s.gcash_qr_url ?? '',
-        bankDetails: s.bank_details ?? '',
-      })
-
-      // Fetch Google Calendar connection state
-      const { data: gcalRow } = await supabase
-        .from('google_tokens')
-        .select('google_email')
-        .single()
-      if (gcalRow) {
-        setGcalConnected(true)
-        setGcalEmail(gcalRow.google_email as string)
-      }
-    }
-
-    loadSettings()
-    reloadEquipment()
-
-    // Read ?gcal= param from OAuth redirect
-    const gcalParam = searchParams.get('gcal')
-    if (gcalParam === 'connected') setGcalFeedback('Google Calendar connected successfully.')
-    else if (gcalParam === 'error_no_refresh_token')
-      setGcalFeedback(
-        'Connection failed: Google did not return a refresh token. Try disconnecting and reconnecting.'
-      )
-    else if (gcalParam === 'error') setGcalFeedback('Connection failed. Please try again.')
-  }, [searchParams])
-
-  async function handleConnect() {
-    setGcalLoading(true)
-    await connectGoogleCalendar()
-    // redirect() from the action navigates away — no need to reset loading
-  }
-
-  async function handleSync() {
-    setGcalLoading(true)
-    setSyncResult(null)
-    const result = await syncGoogleCalendar()
-    if (result.success) {
-      setSyncResult(
-        `Synced: ${result.inserted ?? 0} added, ${result.deleted ?? 0} removed, ${result.conflicts ?? 0} conflict(s) skipped.`
-      )
-    } else {
-      setSyncResult(result.error ?? 'Sync failed.')
-    }
-    setGcalLoading(false)
-  }
-
-  async function handleDisconnect() {
-    setGcalLoading(true)
-    const result = await disconnectGoogleCalendar()
-    if (result.success) {
-      setGcalConnected(false)
-      setGcalEmail(null)
-      setGcalFeedback('Google Calendar disconnected.')
-    } else {
-      setGcalFeedback(result.error ?? 'Disconnect failed.')
-    }
-    setGcalLoading(false)
-  }
-
-  async function handleAddEquipment(e: React.FormEvent) {
-    e.preventDefault()
-    setEquipError(null)
-    if (newEquipName.trim().length < 1 || newEquipPrice === '' || newEquipPrice < 0) {
-      setEquipError('Enter a name and a valid price.')
-      return
-    }
-    setEquipLoading(true)
-    const result = await createEquipment({
-      name: newEquipName,
-      pricePerSession: Math.round(newEquipPrice * 100),
-    })
-    if (result.success) {
-      setNewEquipName('')
-      setNewEquipPrice('')
-      await reloadEquipment()
-    } else {
-      setEquipError(result.error ?? 'Failed to add equipment.')
-    }
-    setEquipLoading(false)
-  }
-
-  async function handleToggleEquipment(id: string, active: boolean) {
-    setEquipLoading(true)
-    const result = await updateEquipment(id, { active: !active })
-    if (result.success) {
-      await reloadEquipment()
-    } else {
-      setEquipError(result.error ?? 'Failed to update equipment.')
-    }
-    setEquipLoading(false)
-  }
-
-  async function handleDeleteEquipment(id: string) {
-    setEquipLoading(true)
-    const result = await deleteEquipment(id)
-    if (result.success) {
-      await reloadEquipment()
-    } else {
-      setEquipError(result.error ?? 'Failed to delete equipment.')
-    }
-    setEquipLoading(false)
-  }
-
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    setLoading(true)
-    setSubmitError(null)
-    setSuccess(false)
-
-    const result = await updateSettings({
-      operatingOpen: form.operatingOpen,
-      operatingClose: form.operatingClose,
-      holdWindowMinutes: form.holdWindowMinutes,
-      defaultDepositPct: form.defaultDepositPct,
-      reminderEnabled: form.reminderEnabled,
-      ratePerHour: Math.round(form.ratePerHourDisplay * 100),
-      gcashQrUrl: form.gcashQrUrl,
-      bankDetails: form.bankDetails,
-    })
-
-    if (result.success) {
-      setSuccess(true)
-      setTimeout(() => setSuccess(false), 3000)
-    } else {
-      setSubmitError(result.error ?? 'Save failed')
-    }
-
-    setLoading(false)
-  }
-
-  const inputClass =
-    'w-full border border-ink/20 bg-bg px-3 py-2 font-sans text-sm focus:outline-none focus:border-ink'
-  const labelClass = 'font-sans text-sm uppercase tracking-widest text-muted'
+  const initialGcalConnected = !!gcalRes.data
+  const initialGcalEmail = gcalRes.data ? (gcalRes.data.google_email as string) : null
 
   return (
-    <div className="p-6 max-w-lg">
-      <h1 className="font-display text-3xl uppercase tracking-wide mb-8">Settings</h1>
-
-      {fetchError && (
-        <p className="mb-6 font-sans text-sm text-red-600">{fetchError}</p>
-      )}
-
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Studio Rate */}
-        <div>
-          <p className={`${labelClass} mb-3`}>Studio Rate</p>
-          <label className="block">
-            <span className={labelClass}>Hourly rate (₱)</span>
-            <input
-              type="number"
-              min={1}
-              step={1}
-              required
-              className={inputClass}
-              value={form.ratePerHourDisplay || ''}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, ratePerHourDisplay: e.target.value === '' ? 0 : Number(e.target.value) }))
-              }
-            />
-          </label>
-        </div>
-
-        {/* Operating Hours */}
-        <div>
-          <p className={`${labelClass} mb-3`}>Operating Hours</p>
-          <div className="space-y-4">
-            <label className="block">
-              <span className={labelClass}>Opening time</span>
-              <input
-                type="time"
-                required
-                className={inputClass}
-                value={form.operatingOpen}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, operatingOpen: e.target.value }))
-                }
-              />
-            </label>
-            <label className="block">
-              <span className={labelClass}>Closing time</span>
-              <input
-                type="time"
-                required
-                className={inputClass}
-                value={form.operatingClose}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, operatingClose: e.target.value }))
-                }
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Booking Rules */}
-        <div>
-          <p className={`${labelClass} mb-3`}>Booking Rules</p>
-          <div className="space-y-4">
-            <label className="block">
-              <span className={labelClass}>Hold window (minutes)</span>
-              <input
-                type="number"
-                min={1}
-                max={60}
-                step={1}
-                required
-                className={inputClass}
-                value={form.holdWindowMinutes}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, holdWindowMinutes: Number(e.target.value) }))
-                }
-              />
-            </label>
-            <label className="block">
-              <span className={labelClass}>Default deposit (%)</span>
-              <input
-                type="number"
-                min={1}
-                max={100}
-                step={1}
-                required
-                className={inputClass}
-                value={form.defaultDepositPct}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, defaultDepositPct: Number(e.target.value) }))
-                }
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* Manual Payment */}
-        <div>
-          <p className={`${labelClass} mb-3`}>Manual Payment (GCash / Bank)</p>
-          <div className="space-y-4">
-            <label className="block">
-              <span className={labelClass}>GCash QR image URL</span>
-              <input
-                type="url"
-                className={inputClass}
-                placeholder="https://.../gcash-qr.png"
-                value={form.gcashQrUrl}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, gcashQrUrl: e.target.value }))
-                }
-              />
-            </label>
-            <label className="block">
-              <span className={labelClass}>Bank / other payment details</span>
-              <textarea
-                rows={3}
-                className={inputClass}
-                placeholder="BDO 1234-5678-90 · Danes Music Studio"
-                value={form.bankDetails}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, bankDetails: e.target.value }))
-                }
-              />
-            </label>
-          </div>
-          <p className="mt-1 font-sans text-xs text-muted">
-            Shown to customers on the payment page. Leave both blank to disable manual payment.
-          </p>
-        </div>
-
-        {/* Notifications */}
-        <div>
-          <p className={`${labelClass} mb-3`}>Notifications</p>
-          <label className="flex items-start gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              className="mt-0.5 h-4 w-4 accent-ink"
-              checked={form.reminderEnabled}
-              onChange={(e) =>
-                setForm((f) => ({ ...f, reminderEnabled: e.target.checked }))
-              }
-            />
-            <span className="font-sans text-sm text-ink">Send booking reminders</span>
-          </label>
-          <p className="mt-1 ml-7 font-sans text-xs text-muted">
-            Reminder emails sent 24 hours before booking start
-          </p>
-        </div>
-
-        {/* Google Calendar */}
-        <div>
-          <p className={`${labelClass} mb-3`}>Google Calendar</p>
-          {gcalFeedback && (
-            <p className="mb-3 font-sans text-sm text-ink border-l-2 border-ink/20 pl-3">{gcalFeedback}</p>
-          )}
-          {gcalConnected ? (
-            <div className="space-y-3">
-              <p className="font-sans text-sm text-ink">
-                Connected as <span className="font-semibold">{gcalEmail}</span>
-              </p>
-              <button
-                type="button"
-                onClick={handleDisconnect}
-                disabled={gcalLoading}
-                className="bg-ink text-bg px-4 py-2 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
-              >
-                {gcalLoading ? 'Disconnecting...' : 'Disconnect'}
-              </button>
-              <button
-                type="button"
-                onClick={handleSync}
-                disabled={gcalLoading}
-                className="bg-ink text-bg px-4 py-2 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
-              >
-                {gcalLoading ? 'Syncing...' : 'Sync Now'}
-              </button>
-              {syncResult && (
-                <p className="font-sans text-xs text-muted">{syncResult}</p>
-              )}
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={handleConnect}
-              disabled={gcalLoading}
-              className="bg-ink text-bg px-4 py-2 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
-            >
-              {gcalLoading ? 'Connecting...' : 'Connect Google Calendar'}
-            </button>
-          )}
-        </div>
-
-        {/* D-13 note */}
-        <p className="font-sans text-xs text-muted border-l-2 border-ink/20 pl-3">
-          Changes apply to new bookings only. Existing bookings are not updated.
-        </p>
-
-        {/* Feedback */}
-        {submitError && (
-          <p className="font-sans text-sm text-red-600">{submitError}</p>
-        )}
-        {success && (
-          <p className="font-sans text-sm text-green-700">Settings saved</p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="bg-ink text-bg px-6 py-3 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
-        >
-          {loading ? 'Saving...' : 'Save Settings'}
-        </button>
-      </form>
-
-      {/* Equipment / Gear — own section, own mutations (not part of the settings form above) */}
-      <div className="mt-10 pt-8 border-t border-ink/10">
-        <p className={`${labelClass} mb-3`}>Equipment / Gear</p>
-        <p className="mb-4 font-sans text-xs text-muted">
-          Added as an optional add-on at booking time. Price is flat per session, added to the studio total.
-        </p>
-
-        {equipment.length > 0 && (
-          <div className="border border-ink/20 divide-y divide-ink/10 mb-4">
-            {equipment.map((item) => (
-              <div key={item.id} className="flex items-center justify-between px-3 py-2 gap-3">
-                <div className={`flex-1 font-sans text-sm ${item.active ? 'text-ink' : 'text-muted line-through'}`}>
-                  {item.name}
-                </div>
-                <div className="font-sans text-sm text-ink tabular-nums">
-                  ₱{(item.price_per_session / 100).toLocaleString('en-PH')}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => handleToggleEquipment(item.id, item.active)}
-                  disabled={equipLoading}
-                  className="font-sans text-xs uppercase tracking-widest text-muted hover:text-ink underline disabled:opacity-50"
-                >
-                  {item.active ? 'Disable' : 'Enable'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDeleteEquipment(item.id)}
-                  disabled={equipLoading}
-                  className="font-sans text-xs uppercase tracking-widest text-red-600 hover:opacity-70 underline disabled:opacity-50"
-                >
-                  Delete
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        <form onSubmit={handleAddEquipment} className="flex flex-wrap items-end gap-3">
-          <label className="block flex-1 min-w-[160px]">
-            <span className={labelClass}>Name</span>
-            <input
-              type="text"
-              className={inputClass}
-              placeholder="Extra mic"
-              value={newEquipName}
-              onChange={(e) => setNewEquipName(e.target.value)}
-            />
-          </label>
-          <label className="block w-32">
-            <span className={labelClass}>Price (₱)</span>
-            <input
-              type="number"
-              min={0}
-              step={1}
-              className={inputClass}
-              value={newEquipPrice}
-              onChange={(e) =>
-                setNewEquipPrice(e.target.value === '' ? '' : Number(e.target.value))
-              }
-            />
-          </label>
-          <button
-            type="submit"
-            disabled={equipLoading}
-            className="bg-ink text-bg px-4 py-2 font-sans text-sm hover:opacity-80 transition-opacity uppercase tracking-widest disabled:opacity-50"
-          >
-            {equipLoading ? 'Adding...' : 'Add'}
-          </button>
-        </form>
-
-        {equipError && (
-          <p className="mt-2 font-sans text-sm text-red-600">{equipError}</p>
-        )}
-      </div>
-    </div>
+    <SettingsClient
+      initialForm={initialForm}
+      fetchError={fetchError}
+      initialGcalConnected={initialGcalConnected}
+      initialGcalEmail={initialGcalEmail}
+      initialEquipment={initialEquipment}
+    />
   )
 }
