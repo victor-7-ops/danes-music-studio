@@ -10,9 +10,37 @@ export const runtime = 'nodejs'
 // "abandoned reschedule" risk to guard against. The old booking is cancelled
 // immediately — the token itself is the trust boundary (unguessable, single
 // booking) — and the customer is sent to /book to make a fresh booking.
+//
+// GET is read-only: it only resolves the token to a confirmation code and
+// redirects to the confirm page. The actual cancellation happens in POST,
+// so an email link-scanner prefetching this GET can no longer cancel a
+// real booking.
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get('token')
   if (!token) {
+    return NextResponse.redirect(new URL('/book?error=invalid_link', req.url))
+  }
+
+  const supabase = createServiceClient()
+  const { data: booking } = await supabase
+    .from('bookings')
+    .select('confirmation_code')
+    .eq('cancel_token', token)
+    .single()
+
+  if (!booking) {
+    return NextResponse.redirect(new URL('/book?error=invalid_link', req.url))
+  }
+
+  return NextResponse.redirect(
+    new URL(`/booking/${booking.confirmation_code}/reschedule-confirm?token=${token}`, req.url)
+  )
+}
+
+export async function POST(req: NextRequest) {
+  const formData = await req.formData()
+  const token = formData.get('token')
+  if (typeof token !== 'string' || !token) {
     return NextResponse.redirect(new URL('/book?error=invalid_link', req.url))
   }
 
