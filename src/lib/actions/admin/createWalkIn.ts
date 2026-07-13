@@ -39,7 +39,15 @@ export async function createWalkIn(
   const start_at = `${date}T${start}:00+08:00`
   const end_at = `${date}T${end}:00+08:00`
 
-  // CRITICAL: App-level overlap check — walk_in completed rows bypass the EXCLUDE constraint
+  // App-level overlap check: gives a friendly error message before hitting the
+  // DB constraint. It only checks pending/confirmed statuses, not completed
+  // walk-ins — that's intentional. The real race-safe backstop is the
+  // bookings_no_overlap EXCLUDE constraint (see
+  // supabase/migrations/20260015000000_9_1_overlap_include_completed.sql),
+  // which covers all non-cancelled statuses including completed and is
+  // enforced atomically by Postgres, closing the TOCTOU gap this SELECT-then-
+  // INSERT check can't close on its own. The catch block below (insertError
+  // handling) is what actually prevents a double-booking under concurrency.
   const { data: conflicts, error: overlapError } = await supabase
     .from('bookings')
     .select('id')
