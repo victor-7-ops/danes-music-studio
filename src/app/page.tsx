@@ -44,6 +44,8 @@ const JSON_LD = {
   ],
 }
 
+export const revalidate = 3600 // 1 hour — studio photos change rarely
+
 export default async function Page() {
   const supabase = await createClient()
   const { data: files } = await supabase.storage.from('studio-photos').list()
