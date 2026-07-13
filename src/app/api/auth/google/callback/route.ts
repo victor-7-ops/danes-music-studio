@@ -1,5 +1,6 @@
 export const runtime = 'nodejs'
 
+import { cookies } from 'next/headers'
 import { createOAuth2Client, registerWatchChannel } from '@/lib/gcal/client'
 import { encryptToken } from '@/lib/gcal/crypto'
 import { createClient } from '@/lib/supabase/server'
@@ -7,6 +8,24 @@ import { createClient } from '@/lib/supabase/server'
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const code = searchParams.get('code')
+  const state = searchParams.get('state')
+
+  const supabase = await createClient()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  if (!user) {
+    return Response.redirect(new URL('/admin/login', request.url))
+  }
+
+  const cookieStore = await cookies()
+  const expectedState = cookieStore.get('gcal_oauth_state')?.value
+  cookieStore.delete('gcal_oauth_state')
+
+  if (!state || !expectedState || state !== expectedState) {
+    console.error('[gcal:callback] state mismatch — possible CSRF attempt')
+    return Response.redirect(new URL('/admin/settings?gcal=error_state_mismatch', request.url))
+  }
 
   if (!code) {
     return Response.redirect(new URL('/admin/settings?gcal=error', request.url))
@@ -25,7 +44,6 @@ export async function GET(request: Request) {
     const googleEmail = tokenInfo.email!
 
     const encrypted = encryptToken(tokens.refresh_token)
-    const supabase = await createClient()
 
     // Delete existing rows (single-row table, no sentinel needed)
     await supabase.from('google_tokens').delete().neq('id', '00000000-0000-0000-0000-000000000000')

@@ -19,11 +19,15 @@ export function createOAuth2Client() {
  * Returns the Google OAuth authorization URL.
  * prompt:'consent' is MANDATORY — without it Google only returns a refresh_token on the very first auth.
  */
-export function generateAuthUrl(oauth2Client: ReturnType<typeof createOAuth2Client>): string {
+export function generateAuthUrl(
+  oauth2Client: ReturnType<typeof createOAuth2Client>,
+  state: string
+): string {
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: ['https://www.googleapis.com/auth/calendar.events'],
     prompt: 'consent',
+    state,
   })
 }
 
