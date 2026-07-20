@@ -114,6 +114,8 @@ export async function createBooking(
         selectedEquipment.map(item => item.id)
       )
       .neq('bookings.status', 'cancelled')
+      .gte('bookings.end_at', start_at)
+      .lte('bookings.start_at', end_at)
 
     if (usageError) {
       return { success: false, error: 'Equipment configuration error.' }
@@ -184,18 +186,50 @@ export async function createBooking(
     return { success: false, error: 'Something went wrong. Please try again.' }
   }
 
-  // 8b. Record selected equipment (price snapshot — later admin price edits
-  // don't retroactively change what this customer agreed to pay)
+  // 8b. Atomically reserve equipment via reserve_equipment() RPC (price
+  // snapshot — later admin price edits don't retroactively change what this
+  // customer agreed to pay).
+  //
+  // The step-5b check above is only a fast-path UX optimization (avoids
+  // creating+rolling-back a booking for an obviously-conflicting request);
+  // it is NOT the source of truth and is inherently racy on its own — two
+  // concurrent requests can both pass it for the same last unit. The RPC is
+  // the authoritative, transactionally-serialized check (see
+  // 20260022000000_equipment_atomic_reserve.sql): it takes a transaction
+  // -scoped advisory lock per equipment_id so a second concurrent call
+  // blocks until the first commits its reservation, then re-checks
+  // availability including that just-committed row.
   if (selectedEquipment.length > 0) {
-    const { error: equipmentInsertError } = await supabase.from('booking_equipment').insert(
-      selectedEquipment.map((item) => ({
-        booking_id: inserted.id,
-        equipment_id: item.id,
-        price_at_booking: item.price_per_session,
-      }))
+    const { data: unavailableRows, error: reserveError } = await supabase.rpc(
+      'reserve_equipment',
+      {
+        p_booking_id: inserted.id,
+        p_start_at: start_at,
+        p_end_at: end_at,
+        p_items: selectedEquipment.map(item => ({
+          equipment_id: item.id,
+          price_at_booking: item.price_per_session,
+        })),
+      }
     )
-    if (equipmentInsertError) {
-      console.error('[createBooking] booking_equipment insert failed', equipmentInsertError)
+
+    if (reserveError) {
+      console.error('[createBooking] reserve_equipment RPC failed', reserveError)
+      // Compensate: remove the booking we just created rather than leave a
+      // pending booking with no equipment reserved.
+      await supabase.from('bookings').delete().eq('id', inserted.id)
+      return { success: false, error: 'Something went wrong. Please try again.' }
+    }
+
+    if (unavailableRows && unavailableRows.length > 0) {
+      // Compensate: cascade-deletes any booking_equipment rows the RPC did
+      // manage to insert for OTHER items in the same call
+      // (booking_equipment.booking_id ON DELETE CASCADE).
+      await supabase.from('bookings').delete().eq('id', inserted.id)
+      return {
+        success: false,
+        error: `${unavailableRows.map((row: { unavailable_name: string }) => row.unavailable_name).join(', ')} ${unavailableRows.length === 1 ? 'is' : 'are'} unavailable for the selected time.`,
+      }
     }
   }
 

@@ -9,6 +9,9 @@ export default defineConfig({
   plugins: [tsconfigPaths()],
   test: {
     environment: 'node',
-    include: ['src/lib/__tests__/bookings.test.ts'],
+    include: [
+      'src/lib/__tests__/bookings.test.ts',
+      'src/lib/__tests__/equipmentReserve.integration.test.ts',
+    ],
   },
 })

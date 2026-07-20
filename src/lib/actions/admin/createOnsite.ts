@@ -39,7 +39,7 @@ export async function createOnsite(
 
   const { data: serviceType, error: serviceError } = await supabase
     .from('service_types')
-    .select('id, rate_per_hour')
+    .select('id, rate_per_hour, deposit_pct')
     .eq('name', 'Rehearsal')
     .single()
 
@@ -49,7 +49,7 @@ export async function createOnsite(
 
   const hours = endHour - startHour
   const total_amount = hours * serviceType.rate_per_hour
-  const deposit_amount = Math.floor(total_amount / 2)
+  const deposit_amount = Math.floor(total_amount * serviceType.deposit_pct)
 
   const code = `DMS-${crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 4)}`
 

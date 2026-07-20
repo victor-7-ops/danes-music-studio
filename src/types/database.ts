@@ -411,7 +411,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      reserve_equipment: {
+        Args: {
+          p_booking_id: string
+          p_start_at: string
+          p_end_at: string
+          p_items: Json
+        }
+        Returns: {
+          unavailable_id: string
+          unavailable_name: string
+        }[]
+      }
     }
     Enums: {
       booking_source: "online" | "onsite" | "walk_in"

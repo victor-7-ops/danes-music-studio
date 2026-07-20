@@ -43,12 +43,17 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
   const supabase = await createClient()
 
-  // Fetch bookings in range
+  // Fetch bookings in range.
+  // .limit() is a defensive runaway-query guard (well above any realistic
+  // single-studio monthly booking count), not real pagination. If a studio
+  // ever legitimately exceeds this in one query window, the fix is a proper
+  // Postgres aggregate RPC, not raising this number.
   const { data: bookings } = await supabase
     .from('bookings')
     .select('amount_paid, deposit_amount, total_amount, status, source, start_at, end_at')
     .gte('start_at', `${from}T00:00:00+08:00`)
     .lte('start_at', `${to}T23:59:59+08:00`)
+    .limit(5000)
 
   // Fetch settings for utilization
   const { data: settings } = await supabase
@@ -63,51 +68,86 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .select('amount_paid, status')
     .gte('start_at', `${prevFrom}T00:00:00+08:00`)
     .lte('start_at', `${prevTo}T23:59:59+08:00`)
+    .limit(5000)
 
   const data = bookings ?? []
   const prevData = prevBookings ?? []
 
-  // Prior-period collected (same reduce logic as current period, below)
+  // Prior-period collected (same condition as current period's `collected`, below)
   const prevCollected = prevData
     .filter((b) => b.status === 'confirmed' || b.status === 'completed')
     .reduce((s, b) => s + Number(b.amount_paid), 0)
 
-  // Revenue aggregates (integer centavo arithmetic)
-  const collected = data
-    .filter((b) => b.status === 'confirmed' || b.status === 'completed')
-    .reduce((s, b) => s + Number(b.amount_paid), 0)
-
-  const outstanding = data
-    .filter(
-      (b) =>
-        b.status === 'confirmed' &&
-        Number(b.amount_paid) < Number(b.deposit_amount),
-    )
-    .reduce((s, b) => s + (Number(b.deposit_amount) - Number(b.amount_paid)), 0)
-
-  const projected = data
-    .filter((b) => b.status === 'pending' || b.status === 'confirmed')
-    .reduce((s, b) => s + Number(b.total_amount), 0)
-
-  // Source breakdown
-  const bySource = {
-    online: data.filter((b) => b.source === 'online').length,
-    onsite: data.filter((b) => b.source === 'onsite').length,
-    walk_in: data.filter((b) => b.source === 'walk_in').length,
+  // Single-pass aggregation: all current-period stats computed in one
+  // reduce() over `data` instead of 8+ separate filter/reduce scans.
+  // If you add a new stat, extend this accumulator rather than adding
+  // another separate pass over `data`.
+  interface StatsAccumulator {
+    collected: number
+    outstanding: number
+    projected: number
+    bySource: { online: number; onsite: number; walk_in: number }
+    counts: {
+      total: number
+      confirmed: number
+      pending: number
+      cancelled: number
+      completed: number
+    }
+    bookedHours: number
   }
 
-  // Headline counts
-  const counts = {
-    total: data.length,
-    confirmed: data.filter((b) => b.status === 'confirmed').length,
-    pending: data.filter((b) => b.status === 'pending').length,
-    cancelled: data.filter((b) => b.status === 'cancelled').length,
-    completed: data.filter((b) => b.status === 'completed').length,
-  }
+  const agg = data.reduce<StatsAccumulator>(
+    (acc, b) => {
+      const amountPaid = Number(b.amount_paid)
+      const isRevenue = b.status === 'confirmed' || b.status === 'completed'
+
+      // Revenue aggregates (integer centavo arithmetic)
+      if (isRevenue) {
+        acc.collected += amountPaid
+      }
+
+      if (b.status === 'confirmed' && amountPaid < Number(b.deposit_amount)) {
+        acc.outstanding += Number(b.deposit_amount) - amountPaid
+      }
+
+      if (b.status === 'pending' || b.status === 'confirmed') {
+        acc.projected += Number(b.total_amount)
+      }
+
+      // Source breakdown
+      if (b.source === 'online') acc.bySource.online++
+      else if (b.source === 'onsite') acc.bySource.onsite++
+      else if (b.source === 'walk_in') acc.bySource.walk_in++
+
+      // Headline counts
+      acc.counts.total++
+      if (b.status === 'confirmed') acc.counts.confirmed++
+      else if (b.status === 'pending') acc.counts.pending++
+      else if (b.status === 'cancelled') acc.counts.cancelled++
+      else if (b.status === 'completed') acc.counts.completed++
+
+      // Booked hours (utilization)
+      if (isRevenue) {
+        acc.bookedHours +=
+          (new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) /
+          3600000
+      }
+
+      return acc
+    },
+    {
+      collected: 0,
+      outstanding: 0,
+      projected: 0,
+      bySource: { online: 0, onsite: 0, walk_in: 0 },
+      counts: { total: 0, confirmed: 0, pending: 0, cancelled: 0, completed: 0 },
+      bookedHours: 0,
+    },
+  )
 
   // Utilization
   let utilization = 0
-  let bookedHours = 0
   let availableHours = 0
 
   if (settings) {
@@ -122,28 +162,23 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
     availableHours = days * hoursPerDay
 
-    bookedHours = data
-      .filter((b) => b.status === 'confirmed' || b.status === 'completed')
-      .reduce(
-        (s, b) =>
-          s +
-          (new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) /
-            3600000,
-        0,
-      )
-
     utilization =
       availableHours > 0
-        ? Math.round((bookedHours / availableHours) * 100)
+        ? Math.round((agg.bookedHours / availableHours) * 100)
         : 0
   }
 
+  // bookedHours is only meaningful (and previously only computed) when
+  // settings exist — preserve that: display 0 rather than a stray figure
+  // when operating hours aren't configured.
+  const bookedHours = settings ? agg.bookedHours : 0
+
   const stats: DashboardStats = {
-    collected,
-    outstanding,
-    projected,
-    bySource,
-    counts,
+    collected: agg.collected,
+    outstanding: agg.outstanding,
+    projected: agg.projected,
+    bySource: agg.bySource,
+    counts: agg.counts,
     utilization,
     bookedHours: Math.round(bookedHours * 10) / 10,
     availableHours,

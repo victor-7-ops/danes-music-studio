@@ -18,7 +18,7 @@ export async function confirmDeposit(
   if (!bookingId || typeof bookingId !== 'string') {
     return { success: false, error: 'Invalid booking ID.' }
   }
-  if (typeof amountReceived !== 'number' || amountReceived < 0) {
+  if (typeof amountReceived !== 'number' || !Number.isInteger(amountReceived) || amountReceived < 0) {
     return { success: false, error: 'Invalid amount.' }
   }
 
