@@ -2,6 +2,11 @@
 
 Planned at commit: `02be9c6`.
 
+## Status: DONE
+
+Owner answered 013a's Question 4 on 2026-07-21: **Option B — per-occurrence
+payment.** Build plan written: `plans/031-recurring-bookings-implementation.md`.
+
 ## Priority / Effort
 
 P2 (direction — largest scoped opportunity, but sequence after quick-rebook
