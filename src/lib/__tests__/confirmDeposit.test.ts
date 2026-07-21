@@ -30,7 +30,10 @@ describe('confirmDeposit', () => {
       cancel_token: 'tok',
     }
     const client = makeMockClient({
-      bookings: [{ data: updatedRow, error: null }],
+      bookings: [
+        { data: { total_amount: 100000 }, error: null },
+        { data: updatedRow, error: null },
+      ],
     })
     vi.mocked(createClient).mockResolvedValue(client as never)
 
@@ -39,12 +42,18 @@ describe('confirmDeposit', () => {
     expect(result.success).toBe(true)
 
     // Assert the DB-mutating call itself, not just the return value.
-    const bookingsCallIndex = vi.mocked(client.from).mock.calls.findIndex(c => c[0] === 'bookings')
-    expect(bookingsCallIndex).toBeGreaterThanOrEqual(0)
-    const builder = vi.mocked(client.from).mock.results[bookingsCallIndex].value
-    expect(builder.update).toHaveBeenCalledWith({ status: 'confirmed', amount_paid: 50000 })
+    const bookingsCalls = vi.mocked(client.from).mock.calls
+      .map((c, i) => ({ call: c, index: i }))
+      .filter((c) => c.call[0] === 'bookings')
+    expect(bookingsCalls.length).toBe(2)
+    const updateBuilder = vi.mocked(client.from).mock.results[bookingsCalls[1].index].value
+    expect(updateBuilder.update).toHaveBeenCalledWith({
+      status: 'confirmed',
+      amount_paid: 50000,
+      payment_method: 'deposit',
+    })
     // Guard against re-confirming an already-cancelled booking.
-    expect(builder.neq).toHaveBeenCalledWith('status', 'cancelled')
+    expect(updateBuilder.neq).toHaveBeenCalledWith('status', 'cancelled')
   })
 
   it('rejects a negative amount without touching the database', async () => {
@@ -61,6 +70,7 @@ describe('confirmDeposit', () => {
   it('rejects an already-cancelled booking (neq guard yields no row -> error)', async () => {
     const client = makeMockClient({
       bookings: [
+        { data: { total_amount: 100000 }, error: null },
         {
           data: null,
           error: { message: 'JSON object requested, multiple (or no) rows returned' },

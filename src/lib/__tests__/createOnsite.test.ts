@@ -29,7 +29,7 @@ const baseParams = {
   end: '12:00',
   customerName: 'Test Band',
   customerPhone: '09171234567',
-  depositReceived: true,
+  paymentType: 'deposit' as const,
 }
 
 describe('createOnsite deposit calculation', () => {

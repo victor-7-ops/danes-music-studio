@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { createOnsite } from '@/lib/actions/admin/createOnsite'
+import { createOnsite, type PaymentType } from '@/lib/actions/admin/createOnsite'
 
 const inputClass = 'w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink focus-visible:ring-2 focus-visible:ring-ink/30'
 const labelClass = 'block font-sans text-sm uppercase tracking-widest mb-2'
@@ -15,7 +15,7 @@ export default function NewBookingPage() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [bandName, setBandName] = useState('')
-  const [depositReceived, setDepositReceived] = useState(false)
+  const [paymentType, setPaymentType] = useState<PaymentType>('unpaid')
   const [error, setError] = useState<string | null>(null)
   const [successCode, setSuccessCode] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -28,7 +28,7 @@ export default function NewBookingPage() {
     setCustomerPhone('')
     setCustomerEmail('')
     setBandName('')
-    setDepositReceived(false)
+    setPaymentType('unpaid')
     setError(null)
     setSuccessCode(null)
   }
@@ -62,7 +62,7 @@ export default function NewBookingPage() {
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim() || undefined,
         bandName: bandName.trim() || undefined,
-        depositReceived,
+        paymentType,
       })
       if (result.success && result.code) {
         setSuccessCode(result.code)
@@ -80,7 +80,7 @@ export default function NewBookingPage() {
           <p className="font-sans text-sm text-muted uppercase tracking-widest">Confirmation Code</p>
           <p className="font-display text-4xl tracking-widest" aria-live="polite">{successCode}</p>
           <p className="font-sans text-sm text-muted">
-            Status: {depositReceived ? 'Confirmed' : 'Pending'}
+            Status: {paymentType === 'unpaid' ? 'Pending' : 'Confirmed'}
           </p>
           <div className="flex flex-col gap-3">
             <Link
@@ -104,7 +104,7 @@ export default function NewBookingPage() {
   return (
     <div className="min-h-screen bg-bg text-ink p-8">
       <div className="max-w-lg mx-auto space-y-6">
-        <h1 className="font-display text-3xl">New Booking</h1>
+        <h1 className="font-display text-3xl">Advanced Booking</h1>
 
         {/* Required field legend */}
         <p className="font-sans text-xs text-muted">
@@ -220,25 +220,43 @@ export default function NewBookingPage() {
             />
           </div>
 
-          <div className="border border-ink/20 p-4 space-y-2">
-            <div className="flex items-center gap-3">
-              <input
-                type="checkbox"
-                id="nb-deposit-received"
-                checked={depositReceived}
-                onChange={(e) => setDepositReceived(e.target.checked)}
-                className="h-4 w-4 accent-ink"
-              />
-              <label htmlFor="nb-deposit-received" className="font-sans text-sm uppercase tracking-widest cursor-pointer">
-                Deposit received
-              </label>
+          <fieldset className="border border-ink/20 p-4 space-y-3">
+            <legend className="font-sans text-sm uppercase tracking-widest px-1 -ml-1">
+              Payment
+            </legend>
+            <div className="space-y-2">
+              {(
+                [
+                  { value: 'unpaid', label: 'Not paid yet' },
+                  { value: 'deposit', label: 'Deposit received' },
+                  { value: 'full', label: 'Paid in full' },
+                ] as const
+              ).map((opt) => (
+                <div key={opt.value} className="flex items-center gap-3">
+                  <input
+                    type="radio"
+                    id={`nb-payment-${opt.value}`}
+                    name="nb-payment"
+                    value={opt.value}
+                    checked={paymentType === opt.value}
+                    onChange={() => setPaymentType(opt.value)}
+                    className="h-4 w-4 accent-ink"
+                  />
+                  <label
+                    htmlFor={`nb-payment-${opt.value}`}
+                    className="font-sans text-sm cursor-pointer"
+                  >
+                    {opt.label}
+                  </label>
+                </div>
+              ))}
             </div>
-            <p className="font-sans text-xs text-muted pl-7" aria-live="polite">
-              {depositReceived
-                ? 'Status will be set to Confirmed'
-                : 'Status will be set to Pending (owner-managed, no auto-expire)'}
+            <p className="font-sans text-xs text-muted" aria-live="polite">
+              {paymentType === 'unpaid'
+                ? 'Status will be set to Pending (owner-managed, no auto-expire)'
+                : 'Status will be set to Confirmed'}
             </p>
-          </div>
+          </fieldset>
 
           {error && (
             <p role="alert" className="text-red-600 font-sans text-sm">

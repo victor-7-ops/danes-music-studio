@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 
+export type PaymentType = 'unpaid' | 'deposit' | 'full'
+
 export interface CreateOnsiteParams {
   date: string           // "YYYY-MM-DD"
   start: string          // "HH:MM" 24h Manila
@@ -10,7 +12,7 @@ export interface CreateOnsiteParams {
   customerEmail?: string
   customerPhone: string
   bandName?: string
-  depositReceived: boolean
+  paymentType: PaymentType
 }
 
 export async function createOnsite(
@@ -22,7 +24,7 @@ export async function createOnsite(
   } = await supabase.auth.getUser()
   if (!user) return { success: false, error: 'Unauthorized' }
 
-  const { date, start, end, customerName, customerEmail, customerPhone, bandName, depositReceived } = params
+  const { date, start, end, customerName, customerEmail, customerPhone, bandName, paymentType } = params
 
   const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date)
   const startOk = /^\d{2}:\d{2}$/.test(start)
@@ -57,8 +59,10 @@ export async function createOnsite(
   const end_at = `${date}T${end}:00+08:00`
 
   // D-09 status logic
-  const status = depositReceived ? 'confirmed' : 'pending'
-  const amount_paid = depositReceived ? deposit_amount : 0
+  const status = paymentType === 'unpaid' ? 'pending' : 'confirmed'
+  const amount_paid =
+    paymentType === 'full' ? total_amount : paymentType === 'deposit' ? deposit_amount : 0
+  const payment_method = paymentType === 'unpaid' ? 'none' : paymentType
 
   const { error: insertError } = await supabase.from('bookings').insert({
     confirmation_code: code,
@@ -75,7 +79,7 @@ export async function createOnsite(
     total_amount,
     deposit_amount,
     amount_paid,
-    payment_method: 'deposit',
+    payment_method,
   })
 
   if (insertError) {

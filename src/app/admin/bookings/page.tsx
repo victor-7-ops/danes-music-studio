@@ -1,5 +1,12 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatPHP } from '@/lib/emails/format'
+import { BookingPaymentAction } from '@/components/admin/BookingPaymentAction'
+
+const PAYMENT_LABEL: Record<string, string> = {
+  full: 'Full',
+  deposit: 'Deposit',
+  none: 'Unpaid',
+}
 
 const STATUS_OPTIONS = [
   { value: '', label: 'All statuses' },
@@ -33,7 +40,7 @@ export default async function BookingsPage({
   let query = supabase
     .from('bookings')
     .select(
-      'id, confirmation_code, band_name, customer_name, start_at, end_at, status, source, amount_paid, deposit_amount, total_amount'
+      'id, confirmation_code, band_name, customer_name, start_at, end_at, status, source, amount_paid, deposit_amount, total_amount, payment_method'
     )
     .order('start_at', { ascending: false })
 
@@ -137,9 +144,11 @@ export default async function BookingsPage({
                 'Band / Customer',
                 'Status',
                 'Source',
+                'Payment',
                 'Deposit',
                 'Paid',
                 'Total',
+                'Action',
               ].map((col) => (
                 <th
                   key={col}
@@ -154,7 +163,7 @@ export default async function BookingsPage({
             {(bookings ?? []).length === 0 ? (
               <tr>
                 <td
-                  colSpan={9}
+                  colSpan={11}
                   className="py-10 text-center text-muted font-sans"
                 >
                   No bookings found.
@@ -205,9 +214,21 @@ export default async function BookingsPage({
                     <td className="py-3 px-2 text-muted uppercase text-xs tracking-widest">
                       {b.source.replace('_', ' ')}
                     </td>
+                    <td className="py-3 px-2 text-muted uppercase text-xs tracking-widest">
+                      {PAYMENT_LABEL[b.payment_method] ?? b.payment_method}
+                    </td>
                     <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.deposit_amount)}</td>
                     <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.amount_paid)}</td>
                     <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.total_amount)}</td>
+                    <td className="py-3 px-2">
+                      {b.status === 'pending' && (
+                        <BookingPaymentAction
+                          bookingId={b.id}
+                          depositAmount={b.deposit_amount}
+                          totalAmount={b.total_amount}
+                        />
+                      )}
+                    </td>
                   </tr>
                 )
               })

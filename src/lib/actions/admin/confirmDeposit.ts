@@ -22,9 +22,24 @@ export async function confirmDeposit(
     return { success: false, error: 'Invalid amount.' }
   }
 
+  const { data: existing, error: fetchError } = await supabase
+    .from('bookings')
+    .select('total_amount')
+    .eq('id', bookingId)
+    .single()
+
+  if (fetchError || !existing) {
+    return { success: false, error: fetchError?.message ?? 'Booking not found.' }
+  }
+
+  // Full vs deposit is inferred from the amount relative to the booking
+  // total — this action accepts any admin-entered amount, not just the
+  // preset deposit/full buttons, so there's no separate payment-type input.
+  const payment_method = amountReceived >= existing.total_amount ? 'full' : 'deposit'
+
   const { data: updated, error } = await supabase
     .from('bookings')
-    .update({ status: 'confirmed', amount_paid: amountReceived })
+    .update({ status: 'confirmed', amount_paid: amountReceived, payment_method })
     .eq('id', bookingId)
     .neq('status', 'cancelled')
     .select('confirmation_code, customer_email, customer_name, band_name, start_at, end_at, total_amount, amount_paid, cancel_token')
