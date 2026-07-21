@@ -79,12 +79,26 @@ export function paymentProofUploadedMessage(bookings: {
   confirmationCode: string
   customerName: string
   bandName: string | null
+  serviceTypeName: string
+  paymentMethod: string
+  depositAmount: number
+  amountPaid: number
+  totalAmount: number
 }[]): string {
   const lines = bookings.map(b => {
     const who = b.bandName
       ? `${escapeHtml(b.bandName)} (${escapeHtml(b.customerName)})`
       : escapeHtml(b.customerName)
-    return `<b>${escapeHtml(b.confirmationCode)}</b> — ${who}`
+    const paymentLine =
+      b.paymentMethod === 'full'
+        ? `Full payment: ${formatPesos(b.totalAmount)}`
+        : b.paymentMethod === 'deposit'
+          ? `Deposit: ${formatPesos(b.depositAmount)} — remaining balance: ${formatPesos(b.totalAmount - b.depositAmount)}`
+          : `Amount: ${formatPesos(b.amountPaid)} of ${formatPesos(b.totalAmount)}`
+    return (
+      `<b>${escapeHtml(b.confirmationCode)}</b> — ${who}\n` +
+      `${escapeHtml(b.serviceTypeName)} — ${paymentLine}`
+    )
   })
-  return `💳 Payment proof uploaded — check and confirm:\n${lines.join('\n')}`
+  return `💳 Payment proof uploaded — check and confirm:\n${lines.join('\n\n')}`
 }

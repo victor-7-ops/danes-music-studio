@@ -74,14 +74,40 @@ describe('paymentConfirmedMessage', () => {
 })
 
 describe('paymentProofUploadedMessage', () => {
-  it('lists one line per booking', () => {
+  it('lists service type, and full-payment amount', () => {
     const msg = paymentProofUploadedMessage([
-      { confirmationCode: 'DMS-GH78', customerName: 'A', bandName: null },
-      { confirmationCode: 'DMS-IJ90', customerName: 'B', bandName: 'Band B' },
+      {
+        confirmationCode: 'DMS-GH78',
+        customerName: 'A',
+        bandName: null,
+        serviceTypeName: 'Rehearsal',
+        paymentMethod: 'full',
+        depositAmount: 35000,
+        amountPaid: 0,
+        totalAmount: 70000,
+      },
     ])
-    expect(msg.split('\n')).toHaveLength(3) // header + 2 bookings
     expect(msg).toContain('DMS-GH78')
-    expect(msg).toContain('DMS-IJ90')
+    expect(msg).toContain('Rehearsal')
+    expect(msg).toContain('Full payment: ₱700')
+  })
+
+  it('shows deposit amount and remaining balance', () => {
+    const msg = paymentProofUploadedMessage([
+      {
+        confirmationCode: 'DMS-IJ90',
+        customerName: 'B',
+        bandName: 'Band B',
+        serviceTypeName: 'Recording',
+        paymentMethod: 'deposit',
+        depositAmount: 35000,
+        amountPaid: 0,
+        totalAmount: 70000,
+      },
+    ])
     expect(msg).toContain('Band B')
+    expect(msg).toContain('Recording')
+    expect(msg).toContain('Deposit: ₱350')
+    expect(msg).toContain('remaining balance: ₱350')
   })
 })

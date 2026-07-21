@@ -40,7 +40,9 @@ export async function POST(req: NextRequest) {
 
   const { data: booking } = await supabase
     .from('bookings')
-    .select('id, status, confirmation_code, customer_name, band_name')
+    .select(
+      'id, status, confirmation_code, customer_name, band_name, payment_method, deposit_amount, amount_paid, total_amount, service_types(name)'
+    )
     .eq('confirmation_code', ref)
     .single()
 
@@ -67,12 +69,20 @@ export async function POST(req: NextRequest) {
     .update({ payment_proof_url: path, hold_expires_at: null })
     .eq('id', booking.id)
 
+  const svc = booking.service_types as { name: string } | { name: string }[] | null
+  const serviceTypeName = (Array.isArray(svc) ? svc[0]?.name : svc?.name) ?? 'Rehearsal'
+
   void sendTelegramMessage(
     paymentProofUploadedMessage([
       {
         confirmationCode: booking.confirmation_code,
         customerName: booking.customer_name,
         bandName: booking.band_name,
+        serviceTypeName,
+        paymentMethod: booking.payment_method,
+        depositAmount: booking.deposit_amount,
+        amountPaid: booking.amount_paid,
+        totalAmount: booking.total_amount,
       },
     ])
   ).catch((err: unknown) => {
