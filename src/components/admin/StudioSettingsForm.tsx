@@ -25,7 +25,7 @@ interface StudioSettingsFormProps {
 }
 
 const inputClass =
-  'w-full border border-ink/20 bg-bg px-3 py-2 font-sans text-sm focus:outline-none focus:border-ink'
+  'w-full rounded-full border border-ink/20 bg-bg px-4 py-2 font-sans text-sm focus:outline-none focus:border-ink'
 const labelClass = 'font-sans text-sm uppercase tracking-widest text-muted'
 
 export default function StudioSettingsForm({ initialForm, children }: StudioSettingsFormProps) {
@@ -270,15 +270,15 @@ export default function StudioSettingsForm({ initialForm, children }: StudioSett
                 <img
                   src={form.gcashQrUrl}
                   alt="Payment QR code"
-                  className="h-20 w-20 border border-ink/20 object-contain bg-bg"
+                  className="h-20 w-20 rounded-2xl border border-ink/20 object-contain bg-bg"
                 />
               ) : (
-                <div className="h-20 w-20 border border-dashed border-ink/20 flex items-center justify-center">
+                <div className="h-20 w-20 rounded-2xl border border-dashed border-ink/20 flex items-center justify-center">
                   <span className="font-sans text-[10px] text-muted uppercase tracking-widest">No QR</span>
                 </div>
               )}
               <label className="cursor-pointer">
-                <span className="inline-block bg-ink/5 text-ink px-4 py-2 font-sans text-sm hover:bg-ink/10 transition-colors uppercase tracking-widest">
+                <span className="inline-block rounded-full bg-ink/5 text-ink px-4 py-2 font-sans text-sm hover:bg-ink/10 transition-colors uppercase tracking-widest">
                   {qrUploading ? 'Uploading...' : form.gcashQrUrl ? 'Replace QR' : 'Upload QR'}
                 </span>
                 <input
