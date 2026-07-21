@@ -24,7 +24,7 @@ interface ReviewSummaryProps {
   phone: string
   bandName: string
   equipment: EquipmentOption[]
-  onConfirm: () => Promise<void>
+  onConfirm: (recurring: boolean, occurrenceCount: number) => Promise<void>
 }
 
 function formatCents(cents: number): string {
@@ -60,6 +60,8 @@ export default function ReviewSummary({
 }: ReviewSummaryProps) {
   const [agreed, setAgreed] = useState(false)
   const [pending, setPending] = useState(false)
+  const [recurring, setRecurring] = useState(false)
+  const [occurrenceCount, setOccurrenceCount] = useState(4)
 
   const startHour = parseInt(start.split(':')[0])
   const endHour = parseInt(end.split(':')[0])
@@ -89,7 +91,7 @@ export default function ReviewSummary({
   async function handleConfirm() {
     setPending(true)
     try {
-      await onConfirm()
+      await onConfirm(recurring, occurrenceCount)
     } finally {
       setPending(false)
     }
@@ -156,6 +158,47 @@ export default function ReviewSummary({
           </div>
         </section>
       </div>
+
+      {/* Recurring booking */}
+      <section className="mt-8">
+        <h2 className={sectionHeading}>Make This Recurring</h2>
+        <div className="border border-border p-4 space-y-4">
+          <div className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              id="recurring"
+              checked={recurring}
+              onChange={e => setRecurring(e.target.checked)}
+              className="mt-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+            />
+            <label htmlFor="recurring" className="font-sans text-sm text-ink cursor-pointer">
+              Repeat this booking weekly, same day and time.
+            </label>
+          </div>
+          {recurring && (
+            <div className="flex items-center gap-3">
+              <label htmlFor="occurrenceCount" className={rowLabel}>
+                Number of weeks
+              </label>
+              <input
+                type="number"
+                id="occurrenceCount"
+                min={1}
+                max={26}
+                value={occurrenceCount}
+                onChange={e => {
+                  const n = parseInt(e.target.value, 10)
+                  setOccurrenceCount(Number.isNaN(n) ? 1 : Math.min(26, Math.max(1, n)))
+                }}
+                className="w-20 border border-border px-2 py-1 font-sans text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+              />
+              <span className="font-sans text-sm text-muted">
+                (1–26, each week paid and confirmed separately)
+              </span>
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* Terms checkbox */}
       <div className="mt-8 flex items-start gap-3">

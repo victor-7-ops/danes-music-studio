@@ -25,6 +25,7 @@ export interface BookingEvent {
   source: 'online' | 'onsite' | 'walk_in'
   payment_proof_url: string | null
   equipment: { name: string; price: number }[]
+  series_id: string | null
 }
 
 const localizer = dateFnsLocalizer({

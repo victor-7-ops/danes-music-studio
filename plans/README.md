@@ -32,7 +32,7 @@ your row when done.
 | 018 | createOnsite uses configured deposit_pct | P2 | S | — | DONE (reviewed, applied) |
 | 024 | Fix README's stale PayMongo description | P2 | S | — | DONE (reviewed, applied) |
 | 029 | Recurring bookings — build plan spike (follow-up to 013) | P2 | S | — | DONE (owner picked Option B, 2026-07-21 — produced plan 031) |
-| 031 | Recurring bookings — implementation (weekly, fixed-N, per-occurrence payment) | P2 | L | — | TODO |
+| 031 | Recurring bookings — implementation (weekly, fixed-N, per-occurrence payment) | P2 | L | — | DONE (reviewed, applied — migration pending live-DB push; typecheck+tests green; three Option-B out-of-scope files confirmed untouched) |
 | 020 | Dashboard parallel Supabase queries | P3 | S | — | DONE (worktree-agent-a66745d165e82b4fb, reviewed) |
 | 021 | Equipment usage query date-range filter | P3 | S | — | DONE (reviewed, applied; required a supabaseMock.ts fix — see notes) |
 | 022 | QR upload server-side content-type validation | P3 | S | — | DONE (migration applied; extension-fix ported by hand into StudioSettingsForm.tsx since 023's split landed after the re-run agent's worktree was created — typecheck+lint green) |

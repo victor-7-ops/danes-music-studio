@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { BookingEvent } from '@/components/admin/BookingsCalendar'
 import { confirmDeposit } from '@/lib/actions/admin/confirmDeposit'
 import { cancelBooking } from '@/lib/actions/admin/cancelBooking'
+import { cancelSeries } from '@/lib/actions/admin/cancelSeries'
 import { formatPHP } from '@/lib/emails/format'
 import { createClient } from '@/lib/supabase/client'
 
@@ -56,6 +57,7 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
     booking.deposit_amount / 100
   )
   const [cancelConfirmStep, setCancelConfirmStep] = useState(false)
+  const [cancelSeriesConfirmStep, setCancelSeriesConfirmStep] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [proofUrl, setProofUrl] = useState<string | null>(null)
@@ -138,6 +140,19 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
       onMutated()
     } else {
       setError(result.error ?? 'Failed to cancel booking.')
+    }
+  }
+
+  async function handleCancelSeries() {
+    if (!booking.series_id) return
+    setLoading(true)
+    setError(null)
+    const result = await cancelSeries(booking.series_id)
+    setLoading(false)
+    if (result.success) {
+      onMutated()
+    } else {
+      setError(result.error ?? `Failed to cancel series (${result.failed.length} occurrence(s) failed).`)
     }
   }
 
@@ -332,6 +347,43 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
                 </button>
                 <button
                   onClick={() => setCancelConfirmStep(false)}
+                  disabled={loading}
+                  className="flex-1 border border-ink/20 text-ink px-4 py-3 hover:bg-ink/5 transition-colors uppercase tracking-widest font-sans text-sm disabled:opacity-50"
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Cancel entire series — only for bookings that belong to a
+              recurring series (booking.series_id set), adjacent to the
+              per-booking cancel action */}
+          {booking.series_id && canCancel && !cancelConfirmStep && !cancelSeriesConfirmStep && (
+            <button
+              onClick={() => setCancelSeriesConfirmStep(true)}
+              disabled={loading}
+              className="w-full border border-ink/20 text-ink px-6 py-3 hover:bg-ink/5 transition-colors uppercase tracking-widest font-sans text-sm disabled:opacity-50"
+            >
+              Cancel Entire Series
+            </button>
+          )}
+
+          {cancelSeriesConfirmStep && (
+            <div className="space-y-2" role="group" aria-label="Confirm series cancellation">
+              <p className="text-sm text-ink font-sans">
+                Cancel every booking in this recurring series?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCancelSeries}
+                  disabled={loading}
+                  className="flex-1 bg-ink text-bg px-4 py-3 hover:opacity-80 transition-opacity uppercase tracking-widest font-sans text-sm disabled:opacity-50"
+                >
+                  {loading ? 'Cancelling…' : 'Yes, cancel series'}
+                </button>
+                <button
+                  onClick={() => setCancelSeriesConfirmStep(false)}
                   disabled={loading}
                   className="flex-1 border border-ink/20 text-ink px-4 py-3 hover:bg-ink/5 transition-colors uppercase tracking-widest font-sans text-sm disabled:opacity-50"
                 >

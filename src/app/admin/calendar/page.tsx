@@ -23,7 +23,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
   const { data: bookings } = await supabase
     .from('bookings')
     .select(
-      'id, confirmation_code, band_name, customer_name, customer_phone, customer_email, start_at, end_at, status, deposit_amount, amount_paid, total_amount, source, payment_proof_url, booking_equipment(price_at_booking, equipment(name))'
+      'id, confirmation_code, band_name, customer_name, customer_phone, customer_email, start_at, end_at, status, deposit_amount, amount_paid, total_amount, source, payment_proof_url, series_id, booking_equipment(price_at_booking, equipment(name))'
     )
     .neq('status', 'cancelled')
     .gte('end_at', `${from}T00:00:00+08:00`)
@@ -46,6 +46,7 @@ export default async function CalendarPage({ searchParams }: PageProps) {
     total_amount: b.total_amount,
     source: b.source as BookingEvent['source'],
     payment_proof_url: b.payment_proof_url,
+    series_id: b.series_id,
     equipment: (b.booking_equipment ?? []).map((be) => {
       const equip = be.equipment as { name: string } | { name: string }[] | null
       const name = Array.isArray(equip) ? equip[0]?.name : equip?.name

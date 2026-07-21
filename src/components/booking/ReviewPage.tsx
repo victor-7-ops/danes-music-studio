@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import ReviewSummary from '@/components/booking/ReviewSummary'
 import { createBooking } from '@/lib/actions/createBooking'
+import { createRecurringBooking } from '@/lib/actions/createRecurringBooking'
 
 interface EquipmentOption {
   id: string
@@ -45,8 +46,34 @@ export default function ReviewPage({
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
 
-  const handleConfirm = async () => {
+  const handleConfirm = async (recurring: boolean, occurrenceCount: number) => {
     setError(null)
+
+    if (recurring) {
+      const result = await createRecurringBooking({
+        date,
+        start,
+        end,
+        service,
+        payment,
+        contactName,
+        email,
+        phone,
+        bandName,
+        equipmentIds: equipment.map((item) => item.id),
+        occurrenceCount,
+      })
+      if (result.success) {
+        router.push(`/book/series-confirm?codes=${result.codes.join(',')}`)
+      } else {
+        const conflictSuffix = result.conflicts?.length
+          ? ` Conflicting date${result.conflicts.length > 1 ? 's' : ''}: ${result.conflicts.join(', ')}.`
+          : ''
+        setError(`${result.error}${conflictSuffix}`)
+      }
+      return
+    }
+
     const result = await createBooking({
       date,
       start,
