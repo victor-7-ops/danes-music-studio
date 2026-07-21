@@ -20,7 +20,8 @@ your row when done.
 | 008 | Fix stale overlap-check comment in createWalkIn | P3 | S | — | DONE (2470ec1) |
 | 007 | Landing page ISR cache | P3 | S | — | DONE (6366459) |
 | 009 | Admin settings page → server component | P3 | M | — | DONE (eac5e2b) |
-| 010 | Dependency upgrade — staging spike (Next/React/Tailwind/ESLint) | P3 | S (spike) | 004 (land CI before any real upgrade work) | TODO |
+| 010 | Dependency upgrade — staging spike (Next/React/Tailwind/ESLint) | P3 | S (spike) | 004 (land CI before any real upgrade work) | DONE (2026-07-21 — produced plan 010a) |
+| 010a | Upgrade Next.js 14→15 + React 18→19 (coupled — Next 15 requires React 19) | P3 | M | 004 (DONE) | TODO |
 | 011 | Equipment inventory conflict check | P3 | M | — | DONE (fbd3317, b4654df, bd860ee, 10e1641, f6047f6) |
 | 012 | Quick "book again" suggestion (no full accounts) | P3 | M | — | TODO |
 | 014 | Dashboard period-over-period comparison | P3 | S | — | DONE (1d2dd5b) |
@@ -44,6 +45,11 @@ your row when done.
 Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale)
 
 ## Dependency notes
+
+- 010a corrects a factual assumption in 010: Next.js 15 requires React 19
+  as a minimum (they cannot be decoupled) — confirmed against the official
+  Next.js 15 upgrade guide. 010a scopes the Next+React bump together,
+  keeping Tailwind and ESLint on their current majors.
 
 - 015 is a P0 live-bug fix reported directly by the studio owner (2026-07-20:
   "mobile dashboard on admin not showing"). No dependency on other plans —
