@@ -5,6 +5,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatPHP } from '@/lib/emails/format'
 import { StatCard } from '@/components/admin/StatCard'
+import { RevenueTrendChart } from '@/components/admin/RevenueTrendChart'
+import { SourceBarChart } from '@/components/admin/SourceBarChart'
 import { getPreviousPeriod } from '@/lib/dashboardPeriod'
 
 interface DashboardStats {
@@ -95,6 +97,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       completed: number
     }
     bookedHours: number
+    dailyRevenue: Record<string, number>
   }
 
   const agg = data.reduce<StatsAccumulator>(
@@ -105,6 +108,10 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       // Revenue aggregates (integer centavo arithmetic)
       if (isRevenue) {
         acc.collected += amountPaid
+        const phDate = new Date(b.start_at).toLocaleDateString('en-CA', {
+          timeZone: 'Asia/Manila',
+        })
+        acc.dailyRevenue[phDate] = (acc.dailyRevenue[phDate] ?? 0) + amountPaid
       }
 
       if (b.status === 'confirmed' && amountPaid < Number(b.deposit_amount)) {
@@ -143,8 +150,21 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       bySource: { online: 0, onsite: 0, walk_in: 0 },
       counts: { total: 0, confirmed: 0, pending: 0, cancelled: 0, completed: 0 },
       bookedHours: 0,
+      dailyRevenue: {},
     },
   )
+
+  // Fill zero-revenue days so the trend line shows gaps, not a skipped axis.
+  const dailyRevenueSeries: { date: string; amount: number }[] = []
+  {
+    const cursor = new Date(from)
+    const endD = new Date(to)
+    while (cursor <= endD) {
+      const key = cursor.toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
+      dailyRevenueSeries.push({ date: key, amount: agg.dailyRevenue[key] ?? 0 })
+      cursor.setDate(cursor.getDate() + 1)
+    }
+  }
 
   // Utilization
   let utilization = 0
@@ -290,6 +310,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             sub="Pending + confirmed total"
           />
         </div>
+        <RevenueTrendChart data={dailyRevenueSeries} />
       </section>
 
       {/* Utilization */}
@@ -314,6 +335,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           <StatCard label="Onsite" value={String(stats.bySource.onsite)} />
           <StatCard label="Walk-in" value={String(stats.bySource.walk_in)} />
         </div>
+        <SourceBarChart
+          data={[
+            { label: 'Online', value: stats.bySource.online },
+            { label: 'Onsite', value: stats.bySource.onsite },
+            { label: 'Walk-in', value: stats.bySource.walk_in },
+          ]}
+        />
       </section>
 
       {/* Headline counts */}
