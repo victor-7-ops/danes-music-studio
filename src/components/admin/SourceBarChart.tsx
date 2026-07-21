@@ -7,6 +7,8 @@ interface Bar {
 
 interface SourceBarChartProps {
   data: Bar[]
+  /** Set false when nesting inside an already-bordered container. */
+  bordered?: boolean
 }
 
 const WIDTH = 480
@@ -14,12 +16,12 @@ const ROW_H = 32
 const PAD_LEFT = 72
 const PAD_RIGHT = 40
 
-export function SourceBarChart({ data }: SourceBarChartProps) {
+export function SourceBarChart({ data, bordered = true }: SourceBarChartProps) {
   const total = data.reduce((s, d) => s + d.value, 0)
 
   if (total === 0) {
     return (
-      <div className="border border-ink/20 p-6 flex items-center justify-center h-[120px]">
+      <div className={`${bordered ? 'border border-ink/20' : ''} p-6 flex items-center justify-center h-[120px]`}>
         <p className="font-sans text-sm text-muted">No data yet</p>
       </div>
     )
@@ -32,7 +34,7 @@ export function SourceBarChart({ data }: SourceBarChartProps) {
   const summary = `Bookings by source: ${data.map((d) => `${d.label} ${d.value}`).join(', ')}.`
 
   return (
-    <div className="border border-ink/20 p-4">
+    <div className={bordered ? 'border border-ink/20 p-4' : 'pt-4'}>
       <svg
         viewBox={`0 0 ${WIDTH} ${height}`}
         className="w-full h-auto"

@@ -301,27 +301,34 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <h2 className="font-display text-xl uppercase tracking-wide text-ink">
           Revenue
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard
-            label="Collected"
-            value={formatPHP(stats.collected)}
-            sub="Confirmed + completed"
-            accent
-            currentValue={stats.collected}
-            previousValue={prevCollected}
-          />
-          <StatCard
-            label="Outstanding"
-            value={formatPHP(stats.outstanding)}
-            sub="Deposits not yet received"
-          />
-          <StatCard
-            label="Projected"
-            value={formatPHP(stats.projected)}
-            sub="Pending + confirmed total"
-          />
+        <div className="border border-ink/20">
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-ink/20">
+            <StatCard
+              label="Collected"
+              value={formatPHP(stats.collected)}
+              sub="Confirmed + completed"
+              accent
+              currentValue={stats.collected}
+              previousValue={prevCollected}
+              flush
+            />
+            <StatCard
+              label="Outstanding"
+              value={formatPHP(stats.outstanding)}
+              sub="Deposits not yet received"
+              flush
+            />
+            <StatCard
+              label="Projected"
+              value={formatPHP(stats.projected)}
+              sub="Pending + confirmed total"
+              flush
+            />
+          </div>
+          <div className="border-t border-ink/20">
+            <RevenueTrendChart data={dailyRevenueSeries} bordered={false} />
+          </div>
         </div>
-        <RevenueTrendChart data={dailyRevenueSeries} />
       </section>
 
       {/* Utilization */}
@@ -329,11 +336,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <h2 className="font-display text-xl uppercase tracking-wide text-ink">
           Utilization
         </h2>
-        <StatCard
-          label="Studio utilization"
-          value={`${stats.utilization}%`}
-          sub={`${stats.bookedHours}h booked of ${stats.availableHours}h available`}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <StatCard
+            label="Studio utilization"
+            value={`${stats.utilization}%`}
+            sub={`${stats.bookedHours}h booked of ${stats.availableHours}h available`}
+          />
+        </div>
       </section>
 
       {/* Bookings by source */}
@@ -341,18 +350,23 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <h2 className="font-display text-xl uppercase tracking-wide text-ink">
           Bookings by Source
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard label="Online" value={String(stats.bySource.online)} />
-          <StatCard label="Onsite" value={String(stats.bySource.onsite)} />
-          <StatCard label="Walk-in" value={String(stats.bySource.walk_in)} />
+        <div className="border border-ink/20">
+          <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-ink/20">
+            <StatCard label="Online" value={String(stats.bySource.online)} flush />
+            <StatCard label="Onsite" value={String(stats.bySource.onsite)} flush />
+            <StatCard label="Walk-in" value={String(stats.bySource.walk_in)} flush />
+          </div>
+          <div className="border-t border-ink/20">
+            <SourceBarChart
+              data={[
+                { label: 'Online', value: stats.bySource.online },
+                { label: 'Onsite', value: stats.bySource.onsite },
+                { label: 'Walk-in', value: stats.bySource.walk_in },
+              ]}
+              bordered={false}
+            />
+          </div>
         </div>
-        <SourceBarChart
-          data={[
-            { label: 'Online', value: stats.bySource.online },
-            { label: 'Onsite', value: stats.bySource.onsite },
-            { label: 'Walk-in', value: stats.bySource.walk_in },
-          ]}
-        />
       </section>
 
       {/* Headline counts */}

@@ -7,9 +7,11 @@ interface StatCardProps {
   previousValue?: number
   /** Current-period raw numeric value, paired with previousValue to compute the delta. */
   currentValue?: number
+  /** Drop this card's own border — used when a parent container already supplies the border/dividers. */
+  flush?: boolean
 }
 
-export function StatCard({ label, value, sub, accent, previousValue, currentValue }: StatCardProps) {
+export function StatCard({ label, value, sub, accent, previousValue, currentValue, flush }: StatCardProps) {
   let deltaLabel: string | null = null
   if (previousValue !== undefined && currentValue !== undefined) {
     if (previousValue === 0) {
@@ -22,7 +24,11 @@ export function StatCard({ label, value, sub, accent, previousValue, currentValu
   }
 
   return (
-    <div className={`border p-5 flex flex-col gap-1.5 ${accent ? 'border-ink bg-ink text-bg' : 'border-ink/20 bg-bg'}`}>
+    <div
+      className={`p-5 flex flex-col gap-1.5 ${
+        flush ? (accent ? 'bg-ink text-bg' : 'bg-bg') : `border ${accent ? 'border-ink bg-ink text-bg' : 'border-ink/20 bg-bg'}`
+      }`}
+    >
       <span className={`font-sans text-[10px] uppercase tracking-[0.15em] ${accent ? 'text-bg/60' : 'text-muted'}`}>
         {label}
       </span>

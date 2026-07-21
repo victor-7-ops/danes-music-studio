@@ -8,6 +8,8 @@ interface Point {
 
 interface RevenueTrendChartProps {
   data: Point[]
+  /** Set false when nesting inside an already-bordered container. */
+  bordered?: boolean
 }
 
 const WIDTH = 640
@@ -17,10 +19,10 @@ const PAD_RIGHT = 12
 const PAD_TOP = 12
 const PAD_BOTTOM = 28
 
-export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
+export function RevenueTrendChart({ data, bordered = true }: RevenueTrendChartProps) {
   if (data.length === 0) {
     return (
-      <div className="border border-ink/20 p-6 flex items-center justify-center h-[200px]">
+      <div className={`${bordered ? 'border border-ink/20' : ''} p-6 flex items-center justify-center h-[200px]`}>
         <p className="font-sans text-sm text-muted">No data yet</p>
       </div>
     )
@@ -43,7 +45,7 @@ export function RevenueTrendChart({ data }: RevenueTrendChartProps) {
   const summary = `Revenue trend over ${data.length} day${data.length === 1 ? '' : 's'}, peaking at ${formatShortPHP(max)}.`
 
   return (
-    <div className="border border-ink/20 p-4">
+    <div className={bordered ? 'border border-ink/20 p-4' : 'pt-4'}>
       <svg
         viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
         className="w-full h-auto"
