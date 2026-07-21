@@ -79,7 +79,7 @@ export function BookingPaymentAction({
             disabled={isPending}
             className="bg-ink text-bg px-2 py-1 min-h-11 text-xs uppercase tracking-widest hover:opacity-80 transition-opacity disabled:opacity-50"
           >
-            Confirm full paid ({formatPHP(totalAmount)})
+            Confirm balance received ({formatPHP(totalAmount - amountPaid)})
           </button>
         )}
       </div>
