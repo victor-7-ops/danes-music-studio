@@ -221,13 +221,14 @@ export default async function BookingsPage({
                     <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.amount_paid)}</td>
                     <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.total_amount)}</td>
                     <td className="py-3 px-2">
-                      {b.status === 'pending' && (
-                        <BookingPaymentAction
-                          bookingId={b.id}
-                          depositAmount={b.deposit_amount}
-                          totalAmount={b.total_amount}
-                        />
-                      )}
+                      <BookingPaymentAction
+                        bookingId={b.id}
+                        status={b.status as 'pending' | 'confirmed' | 'completed' | 'cancelled'}
+                        paymentMethod={b.payment_method as 'full' | 'deposit' | 'none'}
+                        depositAmount={b.deposit_amount}
+                        amountPaid={b.amount_paid}
+                        totalAmount={b.total_amount}
+                      />
                     </td>
                   </tr>
                 )
