@@ -65,11 +65,7 @@ describe('createRecurringBooking', () => {
     )
 
     // bookings bulk insert carried 4 rows, all with series_id + correct dates
-    const bookingsInsertCall = vi
-      .mocked(client.from).mock.calls
-      .map((c, i) => ({ table: c[0], result: vi.mocked(client.from).mock.results[i].value }))
-      .filter(c => c.table === 'bookings')[0] // first .from('bookings') call = pre-check (no insert)
-    // second bookings call is the insert
+    // first .from('bookings') call = pre-check (no insert); second is the insert
     const bookingsCalls = vi
       .mocked(client.from).mock.calls
       .map((c, i) => ({ table: c[0], result: vi.mocked(client.from).mock.results[i].value }))
