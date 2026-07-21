@@ -157,7 +157,7 @@ export default function AdminSidebar() {
                     href={link.href}
                     onClick={() => setIsOpen(false)}
                     className={[
-                      'flex items-center gap-3 px-6 py-2.5 text-sm uppercase tracking-widest transition-colors',
+                      'flex items-center gap-3 px-6 py-2.5 min-h-11 text-sm uppercase tracking-widest transition-colors',
                       isActive
                         ? 'bg-ink text-bg'
                         : 'text-ink hover:bg-ink/5',
@@ -178,7 +178,7 @@ export default function AdminSidebar() {
           <form action={logout}>
             <button
               type="submit"
-              className="w-full flex items-center gap-3 px-6 py-2.5 text-sm uppercase tracking-widest text-muted hover:text-ink hover:bg-ink/5 transition-colors text-left"
+              className="w-full flex items-center gap-3 px-6 py-2.5 min-h-11 text-sm uppercase tracking-widest text-muted hover:text-ink hover:bg-ink/5 transition-colors text-left"
             >
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 opacity-70" aria-hidden="true">
                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />

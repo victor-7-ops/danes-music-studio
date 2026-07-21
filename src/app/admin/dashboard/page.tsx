@@ -240,19 +240,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <div className="flex flex-wrap gap-2 text-sm font-sans">
           <a
             href={`/admin/dashboard?from=${thisMonthFrom}&to=${thisMonthTo}`}
-            className="border border-ink/20 px-3 py-1 text-ink hover:bg-ink hover:text-bg transition-colors"
+            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
           >
             This month
           </a>
           <a
             href={`/admin/dashboard?from=${fmt(last7From)}&to=${fmt(today)}`}
-            className="border border-ink/20 px-3 py-1 text-ink hover:bg-ink hover:text-bg transition-colors"
+            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
           >
             Last 7 days
           </a>
           <a
             href={`/admin/dashboard?from=${fmt(last30From)}&to=${fmt(today)}`}
-            className="border border-ink/20 px-3 py-1 text-ink hover:bg-ink hover:text-bg transition-colors"
+            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
           >
             Last 30 days
           </a>
@@ -268,7 +268,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               type="date"
               name="from"
               defaultValue={from}
-              className="border border-ink/20 px-3 py-1.5 font-sans text-sm text-ink bg-bg"
+              aria-describedby="date-range-summary"
+              className="border border-ink/20 px-3 py-1.5 min-h-11 font-sans text-sm text-ink bg-bg"
             />
           </div>
           <div className="flex flex-col gap-1">
@@ -280,18 +281,19 @@ export default async function DashboardPage({ searchParams }: PageProps) {
               type="date"
               name="to"
               defaultValue={to}
-              className="border border-ink/20 px-3 py-1.5 font-sans text-sm text-ink bg-bg"
+              aria-describedby="date-range-summary"
+              className="border border-ink/20 px-3 py-1.5 min-h-11 font-sans text-sm text-ink bg-bg"
             />
           </div>
           <button
             type="submit"
-            className="border border-ink px-4 py-1.5 font-sans text-sm uppercase tracking-widest text-ink hover:bg-ink hover:text-bg transition-colors"
+            className="border border-ink px-4 py-1.5 min-h-11 font-sans text-sm uppercase tracking-widest text-ink hover:bg-ink hover:text-bg transition-colors"
           >
             Apply
           </button>
         </form>
 
-        <p className="font-sans text-xs text-muted">
+        <p id="date-range-summary" className="font-sans text-xs text-muted">
           Showing: {formatShortDate(from)} — {formatShortDate(to)}
         </p>
       </section>
