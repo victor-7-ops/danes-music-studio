@@ -23,7 +23,8 @@ your row when done.
 | 010 | Dependency upgrade — staging spike (Next/React/Tailwind/ESLint) | P3 | S (spike) | 004 (land CI before any real upgrade work) | DONE (2026-07-21 — produced plan 010a) |
 | 010a | Upgrade Next.js 14→15 + React 18→19 (coupled — Next 15 requires React 19) | P3 | M | 004 (DONE) | TODO |
 | 011 | Equipment inventory conflict check | P3 | M | — | DONE (fbd3317, b4654df, bd860ee, 10e1641, f6047f6) |
-| 012 | Quick "book again" suggestion (no full accounts) | P3 | M | — | TODO |
+| 012 | Quick "book again" suggestion (no full accounts) | P3 | M | — | REJECTED (superseded by 012b — anon-client design exposed PII to enumeration) |
+| 012b | Quick "book again" v2 (rate-limited, dual-match service-role lookup) | P3 | M | — | DONE (reviewed, applied — trim-only normalization matching storage, AND-match, rate-limited) |
 | 014 | Dashboard period-over-period comparison | P3 | S | — | DONE (1d2dd5b) |
 | 016 | Fix equipment double-booking race condition | P1 | M | — | DONE (reviewed, applied — Option A: advisory-lock RPC; typecheck+tests green; concurrency test not run against live DB, needs a real Supabase instance to fully confirm) |
 | 019 | Money-action test coverage (supersedes 005) | P1 | L | — | DONE (reviewed, applied — createBooking/confirmDeposit/cancelBooking/equipment all covered, shared supabaseMock.ts established; 70+ tests green) |

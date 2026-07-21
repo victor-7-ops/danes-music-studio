@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -45,6 +45,66 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
     new Set((initialEquipmentIds ?? []).filter((id) => !unavailableIds.has(id)))
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  // "Book again" suggestion — debounced lookup once both email and phone are
+  // filled in. See plans/012b-quick-rebook-v2.md. Silent on any failure
+  // (network error, 429 rate limit, no match) — this is a convenience
+  // feature, never a blocker to completing the booking.
+  const [suggestion, setSuggestion] = useState<{ bandName: string | null; equipmentIds: string[] } | null>(null)
+  const [suggestionDismissed, setSuggestionDismissed] = useState(false)
+  const lookupTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const trimmedEmail = email.trim()
+    const trimmedPhone = phone.trim()
+
+    if (lookupTimer.current) clearTimeout(lookupTimer.current)
+
+    if (!trimmedEmail || !trimmedPhone) {
+      setSuggestion(null)
+      setSuggestionDismissed(false)
+      return
+    }
+
+    lookupTimer.current = setTimeout(() => {
+      fetch('/api/booking/lookup-previous', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: trimmedEmail, phone: trimmedPhone }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { bandName: string | null; equipmentIds: string[] } | null) => {
+          if (data && (data.bandName || data.equipmentIds.length > 0)) {
+            setSuggestion(data)
+          } else {
+            setSuggestion(null)
+          }
+        })
+        .catch(() => {
+          // Network error, rate limited, or malformed response — fail silently.
+          setSuggestion(null)
+        })
+    }, 500)
+
+    return () => {
+      if (lookupTimer.current) clearTimeout(lookupTimer.current)
+    }
+  }, [email, phone])
+
+  function acceptSuggestion() {
+    if (!suggestion) return
+    if (suggestion.bandName) setBandName(suggestion.bandName)
+    if (suggestion.equipmentIds.length > 0) {
+      setSelectedEquipment((prev) => {
+        const next = new Set(prev)
+        for (const id of suggestion.equipmentIds) {
+          if (!unavailableIds.has(id)) next.add(id)
+        }
+        return next
+      })
+    }
+    setSuggestionDismissed(true)
+  }
 
   const startHour = parseInt(start.split(':')[0])
   const endHour = parseInt(end.split(':')[0])
@@ -238,6 +298,30 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
             </p>
           )}
         </div>
+
+        {suggestion && !suggestionDismissed && (
+          <div className="border border-border bg-surface p-4 flex items-start justify-between gap-4">
+            <p className="font-sans text-sm text-ink">
+              Welcome back{suggestion.bandName ? `, ${suggestion.bandName}` : ''}! Use your details from last time?
+            </p>
+            <div className="flex items-center gap-3 shrink-0">
+              <button
+                type="button"
+                onClick={acceptSuggestion}
+                className="font-sans text-xs uppercase tracking-widest bg-ink text-bg px-3 py-2 hover:opacity-80 transition-opacity motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+              >
+                Yes, use it
+              </button>
+              <button
+                type="button"
+                onClick={() => setSuggestionDismissed(true)}
+                className="font-sans text-xs uppercase tracking-widest text-muted hover:text-ink underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-2">
           <Link
