@@ -49,8 +49,10 @@ export default async function SettingsPage() {
     const s = settingsRes.data
     const st = serviceTypeRes.data
     initialForm = {
-      operatingOpen: s.operating_open,
-      operatingClose: s.operating_close,
+      // Postgres `time` columns come back as "HH:MM:SS" — the settings form
+      // and its <input type="time"> work in "HH:MM".
+      operatingOpen: s.operating_open.slice(0, 5),
+      operatingClose: s.operating_close.slice(0, 5),
       holdWindowMinutes: s.hold_window_minutes,
       defaultDepositPct: s.default_deposit_pct,
       reminderEnabled: s.reminder_enabled,
