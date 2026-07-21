@@ -23,17 +23,21 @@ export default async function CalendarPage({ searchParams }: PageProps) {
   const { data: bookings } = await supabase
     .from('bookings')
     .select(
-      'id, confirmation_code, band_name, customer_name, customer_phone, customer_email, start_at, end_at, status, deposit_amount, amount_paid, total_amount, source, payment_proof_url, series_id, booking_equipment(price_at_booking, equipment(name))'
+      'id, confirmation_code, band_name, customer_name, customer_phone, customer_email, start_at, end_at, status, deposit_amount, amount_paid, total_amount, source, payment_proof_url, series_id, booking_equipment(price_at_booking, equipment(name)), service_types(name)'
     )
     .neq('status', 'cancelled')
     .gte('end_at', `${from}T00:00:00+08:00`)
     .lte('start_at', `${to}T23:59:59+08:00`)
     .order('start_at')
 
-  const events: BookingEvent[] = (bookings ?? []).map((b) => ({
+  const events: BookingEvent[] = (bookings ?? []).map((b) => {
+    const svc = b.service_types as { name: string } | { name: string }[] | null
+    const serviceTypeName = (Array.isArray(svc) ? svc[0]?.name : svc?.name) ?? 'Rehearsal'
+    return {
     id: b.id,
     confirmation_code: b.confirmation_code,
     title: b.band_name ?? b.customer_name,
+    service_type_name: serviceTypeName,
     start: new Date(b.start_at),
     end: new Date(b.end_at),
     status: b.status as BookingEvent['status'],
@@ -52,7 +56,8 @@ export default async function CalendarPage({ searchParams }: PageProps) {
       const name = Array.isArray(equip) ? equip[0]?.name : equip?.name
       return { name: name ?? 'Unknown', price: be.price_at_booking }
     }),
-  }))
+    }
+  })
 
   return (
     <div className="p-6 h-screen">

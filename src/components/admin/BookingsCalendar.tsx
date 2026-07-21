@@ -11,6 +11,7 @@ import { BookingDrawer } from '@/components/admin/BookingDrawer'
 export interface BookingEvent {
   id: string
   title: string // band_name ?? customer_name
+  service_type_name: string
   start: Date
   end: Date
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
@@ -54,6 +55,17 @@ function eventPropGetter(event: BookingEvent) {
   return { style: STATUS_STYLES[event.status] ?? {} }
 }
 
+function EventContent({ event }: { event: BookingEvent }) {
+  return (
+    <div className="flex flex-col overflow-hidden leading-tight">
+      <span className="truncate font-medium">{event.title}</span>
+      <span className="truncate text-[10px] uppercase tracking-wide opacity-75">
+        {event.service_type_name}
+      </span>
+    </div>
+  )
+}
+
 export function BookingsCalendar({
   bookings,
   from,
@@ -90,6 +102,7 @@ export function BookingsCalendar({
         onNavigate={handleNavigate}
         views={['week', 'month', 'day']}
         eventPropGetter={eventPropGetter}
+        components={{ event: EventContent }}
         onSelectEvent={(event) => setSelected(event as BookingEvent)}
         style={{ height: 700 }}
         startAccessor="start"

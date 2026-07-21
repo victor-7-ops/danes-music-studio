@@ -41,6 +41,23 @@ function formatShortDate(isoDate: string): string {
   })
 }
 
+// Tailwind's JIT purge needs statically-discoverable class names — a
+// template-literal `md:grid-cols-${n}` would never get generated.
+const MONTH_GRID_COLS: Record<number, string> = {
+  1: 'md:grid-cols-1',
+  2: 'md:grid-cols-2',
+  3: 'md:grid-cols-3',
+}
+
+// `monthKey` is "YYYY-MM".
+function formatMonthLabel(monthKey: string): string {
+  return new Date(`${monthKey}-01T00:00:00Z`).toLocaleDateString('en-PH', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'short',
+  })
+}
+
 export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams
 
@@ -109,6 +126,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     }
     bookedHours: number
     dailyRevenue: Record<string, number>
+    monthlyRevenue: Record<string, number>
+    monthlyBookedHours: Record<string, number>
   }
 
   const agg = data.reduce<StatsAccumulator>(
@@ -123,6 +142,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
           timeZone: 'Asia/Manila',
         })
         acc.dailyRevenue[phDate] = (acc.dailyRevenue[phDate] ?? 0) + amountPaid
+        const phMonth = phDate.slice(0, 7)
+        acc.monthlyRevenue[phMonth] = (acc.monthlyRevenue[phMonth] ?? 0) + amountPaid
       }
 
       if (b.status === 'confirmed' && amountPaid < Number(b.deposit_amount)) {
@@ -147,9 +168,13 @@ export default async function DashboardPage({ searchParams }: PageProps) {
 
       // Booked hours (utilization)
       if (isRevenue) {
-        acc.bookedHours +=
-          (new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) /
-          3600000
+        const hours =
+          (new Date(b.end_at).getTime() - new Date(b.start_at).getTime()) / 3600000
+        acc.bookedHours += hours
+        const phMonth = new Date(b.start_at).toLocaleDateString('en-CA', {
+          timeZone: 'Asia/Manila',
+        }).slice(0, 7)
+        acc.monthlyBookedHours[phMonth] = (acc.monthlyBookedHours[phMonth] ?? 0) + hours
       }
 
       return acc
@@ -162,6 +187,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       counts: { total: 0, confirmed: 0, pending: 0, cancelled: 0, completed: 0 },
       bookedHours: 0,
       dailyRevenue: {},
+      monthlyRevenue: {},
+      monthlyBookedHours: {},
     },
   )
 
@@ -181,6 +208,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   let utilization = 0
   let availableHours = 0
 
+  // Whole-month range spanning more than one calendar month — shown as a
+  // per-month breakdown instead of a single aggregate stat.
+  const spanDays = Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 86400000) + 1
+  const isMultiMonth = spanDays > 31
+
+  const monthlyRevenueSeries: { date: string; amount: number }[] = []
+  const monthlyUtilization: { month: string; pct: number; bookedHours: number; availableHours: number }[] = []
+
   if (settings) {
     const openHour = parseInt(settings.operating_open.split(':')[0], 10)
     const closeHour = parseInt(settings.operating_close.split(':')[0], 10)
@@ -197,6 +232,28 @@ export default async function DashboardPage({ searchParams }: PageProps) {
       availableHours > 0
         ? Math.round((agg.bookedHours / availableHours) * 100)
         : 0
+
+    if (isMultiMonth) {
+      const monthCursor = new Date(startD.getFullYear(), startD.getMonth(), 1)
+      const endMonth = new Date(endD.getFullYear(), endD.getMonth(), 1)
+      while (monthCursor <= endMonth) {
+        const monthKey = `${monthCursor.getFullYear()}-${String(monthCursor.getMonth() + 1).padStart(2, '0')}`
+        const daysInMonth = new Date(monthCursor.getFullYear(), monthCursor.getMonth() + 1, 0).getDate()
+        const monthAvailableHours = daysInMonth * hoursPerDay
+        const monthBookedHours = agg.monthlyBookedHours[monthKey] ?? 0
+        monthlyUtilization.push({
+          month: monthKey,
+          pct: monthAvailableHours > 0 ? Math.round((monthBookedHours / monthAvailableHours) * 100) : 0,
+          bookedHours: Math.round(monthBookedHours * 10) / 10,
+          availableHours: monthAvailableHours,
+        })
+        monthlyRevenueSeries.push({
+          date: `${monthKey}-01`,
+          amount: agg.monthlyRevenue[monthKey] ?? 0,
+        })
+        monthCursor.setMonth(monthCursor.getMonth() + 1)
+      }
+    }
   }
 
   // bookedHours is only meaningful (and previously only computed) when
@@ -229,6 +286,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .toISOString()
     .split('T')[0]
 
+  // N-month quick links: from the first day of (N-1) months ago through the
+  // end of the current month.
+  function monthsRangeHref(n: number): string {
+    const start = new Date(today.getFullYear(), today.getMonth() - (n - 1), 1)
+    const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`
+    return `/admin/dashboard?from=${startStr}&to=${thisMonthTo}`
+  }
+
   return (
     <div className="p-6 max-w-4xl space-y-8">
       <h1 className="font-display text-3xl uppercase tracking-tight text-ink">
@@ -255,6 +320,24 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
           >
             Last 30 days
+          </a>
+          <a
+            href={monthsRangeHref(1)}
+            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
+          >
+            1 month
+          </a>
+          <a
+            href={monthsRangeHref(2)}
+            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
+          >
+            2 months
+          </a>
+          <a
+            href={monthsRangeHref(3)}
+            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
+          >
+            3 months
           </a>
         </div>
 
@@ -328,7 +411,11 @@ export default async function DashboardPage({ searchParams }: PageProps) {
             />
           </div>
           <div className="border-t border-ink/20">
-            <RevenueTrendChart data={dailyRevenueSeries} bordered={false} />
+            <RevenueTrendChart
+              data={isMultiMonth ? monthlyRevenueSeries : dailyRevenueSeries}
+              bordered={false}
+              granularity={isMultiMonth ? 'month' : 'day'}
+            />
           </div>
         </div>
       </section>
@@ -338,13 +425,26 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         <h2 className="font-display text-xl uppercase tracking-wide text-ink">
           Utilization
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <StatCard
-            label="Studio utilization"
-            value={`${stats.utilization}%`}
-            sub={`${stats.bookedHours}h booked of ${stats.availableHours}h available`}
-          />
-        </div>
+        {isMultiMonth ? (
+          <div className={`grid grid-cols-1 gap-4 ${MONTH_GRID_COLS[Math.min(monthlyUtilization.length, 3)] ?? 'md:grid-cols-3'}`}>
+            {monthlyUtilization.map((m) => (
+              <StatCard
+                key={m.month}
+                label={formatMonthLabel(m.month)}
+                value={`${m.pct}%`}
+                sub={`${m.bookedHours}h booked of ${m.availableHours}h available`}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard
+              label="Studio utilization"
+              value={`${stats.utilization}%`}
+              sub={`${stats.bookedHours}h booked of ${stats.availableHours}h available`}
+            />
+          </div>
+        )}
       </section>
 
       {/* Bookings by source */}

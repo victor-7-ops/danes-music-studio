@@ -43,7 +43,7 @@ const NAV_GROUPS = [
     label: 'Create',
     items: [
       {
-        label: 'New Booking',
+        label: 'Advanced Booking',
         href: '/admin/new-booking',
         icon: (
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

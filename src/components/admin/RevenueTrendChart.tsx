@@ -10,6 +10,8 @@ interface RevenueTrendChartProps {
   data: Point[]
   /** Set false when nesting inside an already-bordered container. */
   bordered?: boolean
+  /** 'month' expects each `date` as the 1st of the month (YYYY-MM-01) and labels by month name. */
+  granularity?: 'day' | 'month'
 }
 
 const WIDTH = 640
@@ -19,7 +21,7 @@ const PAD_RIGHT = 12
 const PAD_TOP = 12
 const PAD_BOTTOM = 28
 
-export function RevenueTrendChart({ data, bordered = true }: RevenueTrendChartProps) {
+export function RevenueTrendChart({ data, bordered = true, granularity = 'day' }: RevenueTrendChartProps) {
   if (data.length === 0) {
     return (
       <div className={`${bordered ? 'border border-ink/20' : ''} p-6 flex items-center justify-center h-[200px]`}>
@@ -42,7 +44,12 @@ export function RevenueTrendChart({ data, bordered = true }: RevenueTrendChartPr
   // Show at most 6 x-axis labels to avoid crowding on wide ranges.
   const labelStep = Math.max(1, Math.ceil(data.length / 6))
 
-  const summary = `Revenue trend over ${data.length} day${data.length === 1 ? '' : 's'}, peaking at ${formatShortPHP(max)}.`
+  const unit = granularity === 'month' ? 'month' : 'day'
+  const summary = `Revenue trend over ${data.length} ${unit}${data.length === 1 ? '' : 's'}, peaking at ${formatShortPHP(max)}.`
+  const xLabel = (date: string) =>
+    granularity === 'month'
+      ? new Date(`${date}T00:00:00Z`).toLocaleDateString('en-PH', { timeZone: 'UTC', month: 'short', year: '2-digit' })
+      : date.slice(5)
 
   return (
     <div className={bordered ? 'border border-ink/20 p-4' : 'pt-4'}>
@@ -98,7 +105,7 @@ export function RevenueTrendChart({ data, bordered = true }: RevenueTrendChartPr
               textAnchor="middle"
               className="fill-muted text-[9px] font-sans"
             >
-              {d.date.slice(5)}
+              {xLabel(d.date)}
             </text>
           ) : null,
         )}
