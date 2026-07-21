@@ -30,6 +30,17 @@ interface PageProps {
   searchParams: Promise<{ from?: string; to?: string }>
 }
 
+// `from`/`to` are plain calendar dates (YYYY-MM-DD), not instants — format
+// with timeZone: 'UTC' so Intl doesn't shift the date across the Manila offset.
+function formatShortDate(isoDate: string): string {
+  return new Date(`${isoDate}T00:00:00Z`).toLocaleDateString('en-PH', {
+    timeZone: 'UTC',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
 export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams
 
@@ -281,7 +292,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         </form>
 
         <p className="font-sans text-xs text-muted">
-          Showing: {from} — {to}
+          Showing: {formatShortDate(from)} — {formatShortDate(to)}
         </p>
       </section>
 
