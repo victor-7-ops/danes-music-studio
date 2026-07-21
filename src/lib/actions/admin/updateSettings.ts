@@ -55,7 +55,9 @@ export async function updateSettings(
       operating_open: operatingOpen,
       operating_close: operatingClose,
       hold_window_minutes: holdWindowMinutes,
-      default_deposit_pct: defaultDepositPct,
+      // Column is a fraction (numeric(4,3), e.g. 0.500) — params carry whole
+      // percent integers (1-100).
+      default_deposit_pct: defaultDepositPct / 100,
       reminder_enabled: reminderEnabled,
       gcash_qr_url: gcashQrUrl.trim() || null,
       bank_name: bankName.trim() || null,

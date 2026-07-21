@@ -54,7 +54,9 @@ export default async function SettingsPage() {
       operatingOpen: s.operating_open.slice(0, 5),
       operatingClose: s.operating_close.slice(0, 5),
       holdWindowMinutes: s.hold_window_minutes,
-      defaultDepositPct: s.default_deposit_pct,
+      // DB stores a fraction (numeric(4,3), e.g. 0.500) — form/API work in
+      // whole percent integers (1-100).
+      defaultDepositPct: Math.round(s.default_deposit_pct * 100),
       reminderEnabled: s.reminder_enabled,
       ratePerHourDisplay: Math.round(st.rate_per_hour / 100),
       gcashQrUrl: s.gcash_qr_url ?? '',
