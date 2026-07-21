@@ -90,4 +90,15 @@ the live tracker — check it for current status before trusting this list).
 
 ---
 
-**Next Steps**: Begin Week 1 testing with baseline established.
+## 7. QA execution log — 2026-07-21
+
+First live execution pass against the deployed Supabase project (via `pnpm dev` + browser automation + direct DB queries, all test data cleaned up after each check):
+
+- **TC-SEC-002, TC-BOOK-001, TC-BOOK-002**: PASS — verified live, including a direct DB read confirming server-computed pricing (₱35,000 total / ₱17,500 deposit) and that `bookings_no_overlap` correctly excludes conflicting slots from `/api/availability`.
+- **TC-EQUIP-002**: PASS, but with a significant finding — the original integration test's premise (two different bookings racing for the same equipment at overlapping times) is structurally impossible in this single-room schema, since `bookings_no_overlap` is a table-wide exclusion constraint with no per-room partition. The second booking insert always fails with a Postgres `23P01` exclusion violation before either `reserve_equipment()` RPC call could run. Rewrote `equipmentReserve.integration.test.ts` to assert the constraint that actually provides the protection. **This does not mean plan 016's fix is wrong** — the RPC/advisory-lock layer is correct and would matter if this app ever became multi-room — but for the current single-room reality it's defense-in-depth for a scenario the room-level constraint already forecloses. Worth noting for anyone re-prioritizing that finding in the future: its real-world severity is lower than originally assessed.
+- **TC-PAY-002**: PASS via existing automated coverage (plan 017).
+- **TC-PAY-001**: SKIP — dev DB has no GCash QR/bank details configured (`/admin/settings`), so the prerequisite isn't met. Page itself renders the correct fallback message and amount.
+- **TC-EQUIP-001**: NOT RUN — browser automation became unreliable (clicks not registering, screenshots timing out) partway through this session on the slot-picker page; not an app bug (confirmed via direct `curl` against `/api/availability` that slots were genuinely available). Recommend a follow-up manual pass.
+- **BUG-001 filed** (P3, cosmetic): the booking review page shows `"<Contact Name> (no band name)"` when Band/Artist Name is left blank, instead of a clear empty-state placeholder. Pre-existing (`ReviewSummary.tsx:84-86`), not introduced by any 2026-07-21 plan. `band_name` is correctly stored as `NULL` — display-only issue.
+
+**Next Steps**: Continue with TC-EQUIP-001 and the remaining Not Started rows (Auth/Calendar/Bookings/New Booking/Walk-In/Maintenance/Settings/Drawer categories) in a follow-up session with a stabler browser session; fix BUG-001 when convenient.
