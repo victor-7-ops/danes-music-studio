@@ -7,7 +7,8 @@ import { sendTelegramMessage, paymentConfirmedMessage } from '@/lib/telegram'
 
 export async function confirmDeposit(
   bookingId: string,
-  amountReceived: number
+  amountReceived: number,
+  paymentType?: 'full' | 'deposit'
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient()
   const {
@@ -32,10 +33,11 @@ export async function confirmDeposit(
     return { success: false, error: fetchError?.message ?? 'Booking not found.' }
   }
 
-  // Full vs deposit is inferred from the amount relative to the booking
-  // total — this action accepts any admin-entered amount, not just the
-  // preset deposit/full buttons, so there's no separate payment-type input.
-  const payment_method = amountReceived >= existing.total_amount ? 'full' : 'deposit'
+  // Prefer the caller's stated intent (which button was pressed) — falling
+  // back to inferring from the amount only covers legacy callers that don't
+  // pass paymentType. Inference alone mislabels a deposit as "full" whenever
+  // deposit_amount === total_amount.
+  const payment_method = paymentType ?? (amountReceived >= existing.total_amount ? 'full' : 'deposit')
 
   const { data: updated, error } = await supabase
     .from('bookings')

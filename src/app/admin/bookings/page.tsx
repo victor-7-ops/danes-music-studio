@@ -215,7 +215,7 @@ export default async function BookingsPage({
                       {b.source.replace('_', ' ')}
                     </td>
                     <td className="py-3 px-2 text-muted uppercase text-xs tracking-widest">
-                      {PAYMENT_LABEL[b.payment_method] ?? b.payment_method}
+                      {PAYMENT_LABEL[b.payment_method ?? 'none'] ?? b.payment_method}
                     </td>
                     <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.deposit_amount)}</td>
                     <td className="py-3 px-2 text-ink tabular-nums">{formatPHP(b.amount_paid)}</td>
@@ -224,7 +224,7 @@ export default async function BookingsPage({
                       <BookingPaymentAction
                         bookingId={b.id}
                         status={b.status as 'pending' | 'confirmed' | 'completed' | 'cancelled'}
-                        paymentMethod={b.payment_method as 'full' | 'deposit' | 'none'}
+                        paymentMethod={b.payment_method as 'full' | 'deposit' | 'none' | null}
                         depositAmount={b.deposit_amount}
                         amountPaid={b.amount_paid}
                         totalAmount={b.total_amount}

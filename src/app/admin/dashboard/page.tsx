@@ -208,10 +208,14 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   let utilization = 0
   let availableHours = 0
 
-  // Whole-month range spanning more than one calendar month — shown as a
-  // per-month breakdown instead of a single aggregate stat.
-  const spanDays = Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 86400000) + 1
-  const isMultiMonth = spanDays > 31
+  // Range spanning more than one calendar month — shown as a per-month
+  // breakdown instead of a single aggregate stat. Compare year+month, not
+  // day count, so e.g. Jan 16 - Feb 15 (31 days, 2 months) is caught and a
+  // 32-day single-month range isn't wrongly split.
+  const fromD = new Date(from)
+  const toD = new Date(to)
+  const isMultiMonth =
+    fromD.getFullYear() !== toD.getFullYear() || fromD.getMonth() !== toD.getMonth()
 
   const monthlyRevenueSeries: { date: string; amount: number }[] = []
   const monthlyUtilization: { month: string; pct: number; bookedHours: number; availableHours: number }[] = []

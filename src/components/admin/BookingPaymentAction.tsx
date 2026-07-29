@@ -8,7 +8,7 @@ import { formatPHP } from '@/lib/emails/format'
 interface BookingPaymentActionProps {
   bookingId: string
   status: 'pending' | 'confirmed' | 'completed' | 'cancelled'
-  paymentMethod: 'full' | 'deposit' | 'none'
+  paymentMethod: 'full' | 'deposit' | 'none' | null
   depositAmount: number
   amountPaid: number
   totalAmount: number
@@ -26,10 +26,10 @@ export function BookingPaymentAction({
   const [isPending, startTransition] = useTransition()
   const [error, setError] = useState<string | null>(null)
 
-  function confirm(amount: number) {
+  function confirm(amount: number, type: 'full' | 'deposit') {
     setError(null)
     startTransition(async () => {
-      const result = await confirmDeposit(bookingId, amount)
+      const result = await confirmDeposit(bookingId, amount, type)
       if (result.success) {
         router.refresh()
       } else {
@@ -41,8 +41,8 @@ export function BookingPaymentAction({
   // Pending: show only the button matching what the customer signed up to
   // pay — no dual buttons, so admins can't accidentally confirm the wrong
   // amount. 'none' (payment type never specified) still offers both.
-  const showDepositButton = status === 'pending' && (paymentMethod === 'deposit' || paymentMethod === 'none')
-  const showFullButton = status === 'pending' && (paymentMethod === 'full' || paymentMethod === 'none')
+  const showDepositButton = status === 'pending' && (paymentMethod === 'deposit' || paymentMethod === 'none' || !paymentMethod)
+  const showFullButton = status === 'pending' && (paymentMethod === 'full' || paymentMethod === 'none' || !paymentMethod)
   // Confirmed on a deposit with a balance still owed — let the admin mark
   // the remaining balance as received once the customer pays on the day.
   const showBalanceButton = status === 'confirmed' && paymentMethod === 'deposit' && amountPaid < totalAmount
@@ -55,7 +55,7 @@ export function BookingPaymentAction({
         {showDepositButton && (
           <button
             type="button"
-            onClick={() => confirm(depositAmount)}
+            onClick={() => confirm(depositAmount, 'deposit')}
             disabled={isPending}
             className="border border-ink/30 px-2 py-1 min-h-11 text-xs uppercase tracking-widest text-ink hover:bg-ink hover:text-bg transition-colors disabled:opacity-50"
           >
@@ -65,7 +65,7 @@ export function BookingPaymentAction({
         {showFullButton && (
           <button
             type="button"
-            onClick={() => confirm(totalAmount)}
+            onClick={() => confirm(totalAmount, 'full')}
             disabled={isPending}
             className="bg-ink text-bg px-2 py-1 min-h-11 text-xs uppercase tracking-widest hover:opacity-80 transition-opacity disabled:opacity-50"
           >
@@ -75,7 +75,7 @@ export function BookingPaymentAction({
         {showBalanceButton && (
           <button
             type="button"
-            onClick={() => confirm(totalAmount)}
+            onClick={() => confirm(totalAmount, 'full')}
             disabled={isPending}
             className="bg-ink text-bg px-2 py-1 min-h-11 text-xs uppercase tracking-widest hover:opacity-80 transition-opacity disabled:opacity-50"
           >
