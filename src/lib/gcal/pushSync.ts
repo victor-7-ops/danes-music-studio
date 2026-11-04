@@ -1,6 +1,6 @@
 import { google } from 'googleapis'
 import { getGcalClient } from './client'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
 
 /**
  * Idempotent push: if booking already has a gcal_event_id, patches the existing event.
@@ -14,7 +14,7 @@ export async function pushGcalEvent(bookingId: string): Promise<void> {
   }
 
   const { oauth2Client, calendarId } = client
-  const supabase = await createClient()
+  const supabase = createServiceClient()
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as unknown as { from(table: string): any }

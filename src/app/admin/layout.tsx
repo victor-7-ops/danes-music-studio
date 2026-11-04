@@ -17,6 +17,7 @@ export default async function AdminLayout({
       data: { user },
     } = await supabase.auth.getUser()
     if (!user) redirect('/admin/login')
+    if (user.app_metadata?.role !== 'admin') redirect('/')
   }
 
   if (pathname === '/admin/login') {

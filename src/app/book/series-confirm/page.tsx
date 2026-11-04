@@ -1,10 +1,14 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { DmsHero } from '@/components/DmsHero'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
+import { formatManila } from '@/lib/emails/format'
+import { formatPHP } from '@/lib/emails/format'
 
 interface PageProps {
   searchParams: Promise<{
     codes?: string
+    tokens?: string
   }>
 }
 
@@ -16,16 +20,25 @@ interface PageProps {
 export default async function SeriesConfirmPage({ searchParams }: PageProps) {
   const params = await searchParams
   const codesParam = params.codes
+  const tokensParam = params.tokens
 
-  if (!codesParam) {
+  if (!codesParam || !tokensParam) {
     redirect('/book')
   }
 
   const codes = codesParam.split(',').filter(Boolean)
+  const tokens = tokensParam.split(',').filter(Boolean)
 
-  if (codes.length === 0) {
+  if (codes.length === 0 || codes.length !== tokens.length || codes.length > 26) {
     redirect('/book')
   }
+
+  const service = createServiceClient()
+  const { data: records } = await service.from('bookings').select('confirmation_code, cancel_token, start_at, status, hold_expires_at, payment_proof_url, payment_method, total_amount, deposit_amount').in('confirmation_code', codes)
+  const sessions = codes.map((code, i) => records?.find(row => row.confirmation_code === code && row.cancel_token === tokens[i]))
+  if (sessions.some(session => !session)) redirect('/book')
+  const deadline = sessions.find(session => session?.hold_expires_at)?.hold_expires_at ?? null
+  const now = new Date().toISOString()
 
   return (
     <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16 text-center">
@@ -38,9 +51,7 @@ export default async function SeriesConfirmPage({ searchParams }: PageProps) {
       </h1>
 
       <p className="font-sans text-muted mb-8 max-w-md">
-        Your {codes.length}-week recurring booking is reserved. Each session
-        is held separately — pay for each one as it approaches using its own
-        confirmation code below.
+        Submit each session&apos;s required payment by the initial hold deadline{deadline ? `, ${formatManila(deadline, 'datetime')}` : ''}. The studio confirms each session after reviewing its proof.
       </p>
 
       <div className="w-full max-w-sm border border-border divide-y divide-border mb-10 text-left">
@@ -49,12 +60,17 @@ export default async function SeriesConfirmPage({ searchParams }: PageProps) {
             <span className="font-sans text-xs uppercase tracking-widest text-muted">
               Week {i + 1}
             </span>
-            <Link
-              href={`/book/pay?code=${code}`}
+            <div className="flex flex-col items-end">
+            <span className="font-sans text-xs text-muted">{formatManila(sessions[i]!.start_at, 'date')} · {sessions[i]!.status}</span>
+            <span className="font-sans text-xs text-muted">{formatPHP(sessions[i]!.payment_method === 'deposit' ? sessions[i]!.deposit_amount : sessions[i]!.total_amount)} due</span>
+            {sessions[i]!.status === 'pending' && !sessions[i]!.payment_proof_url && (!sessions[i]!.hold_expires_at || sessions[i]!.hold_expires_at > now) ? <Link
+              href={`/book/pay?code=${code}&token=${tokens[i]}`}
               className="font-display text-lg text-ink tracking-widest hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
             >
               {code}
             </Link>
+            : <span className="font-sans text-xs text-muted">{sessions[i]!.payment_proof_url ? 'Proof submitted' : sessions[i]!.status === 'pending' ? 'Hold expired' : 'Unavailable'}</span>}
+            </div>
           </div>
         ))}
       </div>

@@ -1,3 +1,4 @@
+import 'server-only'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database'
 
@@ -5,9 +6,12 @@ import type { Database } from '@/types/database'
 // already enforced by other means (unguessable token match, cron secret,
 // admin session), never expose to a route with no independent access check.
 export function createServiceClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key) throw new Error('Missing required server Supabase environment variables.')
   return createSupabaseClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    url,
+    key,
     {
       auth: { autoRefreshToken: false, persistSession: false },
       // Next.js patches the server-side global fetch with its own Data Cache

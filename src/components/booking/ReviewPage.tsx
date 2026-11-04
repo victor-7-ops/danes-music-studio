@@ -64,7 +64,7 @@ export default function ReviewPage({
         occurrenceCount,
       })
       if (result.success) {
-        router.push(`/book/series-confirm?codes=${result.codes.join(',')}`)
+        router.push(`/book/series-confirm?codes=${result.codes.join(',')}&tokens=${result.tokens.join(',')}&deadline=${encodeURIComponent(result.holdExpiresAt)}`)
       } else {
         const conflictSuffix = result.conflicts?.length
           ? ` Conflicting date${result.conflicts.length > 1 ? 's' : ''}: ${result.conflicts.join(', ')}.`
@@ -87,7 +87,7 @@ export default function ReviewPage({
       equipmentIds: equipment.map((item) => item.id),
     })
     if (result.success) {
-      router.push(`/book/confirm?code=${result.code}`)
+      router.push(`/book/confirm?code=${result.code}&token=${result.token}`)
     } else {
       setError(result.error)
     }

@@ -11,7 +11,7 @@ const fromMock = vi.fn((table: string) => {
   if (table === 'service_types') return { select: selectMock }
   return { insert: insertMock }
 })
-const getUserMock = vi.fn(() => Promise.resolve({ data: { user: { id: 'admin-1' } } }))
+const getUserMock = vi.fn(() => Promise.resolve({ data: { user: { id: 'admin-1', app_metadata: { role: 'admin' } } } }))
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () =>

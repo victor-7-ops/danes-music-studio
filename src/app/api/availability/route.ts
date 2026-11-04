@@ -1,25 +1,29 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { getAvailableSlots } from '@/lib/availability'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
+import { getAvailableSlots, isAvailabilityBlockingBooking } from '@/lib/availability'
 import type { DateRange, SpecialHours, Settings } from '@/lib/availability'
 
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+const DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const date = searchParams.get('date')
 
-  if (!date || !DATE_RE.test(date)) {
+  const dateMatch = date ? DATE_RE.exec(date) : null
+  const parsedDate = date ? new Date(`${date}T00:00:00Z`) : new Date(Number.NaN)
+  if (!dateMatch || !Number.isFinite(parsedDate.getTime()) || parsedDate.toISOString().slice(0, 10) !== date) {
     return NextResponse.json({ error: 'Invalid date' }, { status: 400 })
   }
 
-  const supabase = await createClient()
+  // Service role is used only to return a sanitized slot projection. No booking
+  // row or customer data leaves this route.
+  const supabase = createServiceClient()
 
   const [bookingsRes, blockedRes, specialRes, settingsRes] = await Promise.all([
     supabase
       .from('bookings')
       .select('start_at, end_at, status, hold_expires_at')
-      .in('status', ['confirmed', 'pending'])
+      .in('status', ['confirmed', 'completed', 'pending'])
       .gte('end_at', `${date}T00:00:00+08:00`)
       .lte('start_at', `${date}T23:59:59+08:00`),
 
@@ -58,16 +62,12 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'DB error' }, { status: 500 })
   }
 
-  // Filter bookings: confirmed always, pending only if hold has not expired
+  // Pending rows with no expiry (proof review or onsite) still reserve time.
+  // Confirmed/completed rows always block. Expired pending rows are free; the
+  // creation RPC retires them before attempting a replacement.
   const now = new Date().toISOString()
   const activeBookings: DateRange[] = (bookingsRes.data ?? [])
-    .filter(row => {
-      if (row.status === 'confirmed') return true
-      if (row.status === 'pending') {
-        return row.hold_expires_at != null && row.hold_expires_at > now
-      }
-      return false
-    })
+    .filter(row => isAvailabilityBlockingBooking(row.status, row.hold_expires_at, now))
     .map(row => ({
       startAt: new Date(row.start_at),
       endAt: new Date(row.end_at),

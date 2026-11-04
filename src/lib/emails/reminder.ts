@@ -23,10 +23,11 @@ export async function sendReminderEmail(booking: ReminderBooking): Promise<void>
     to: booking.customer_email,
     subject: `Your session tomorrow — ${booking.confirmation_code}`,
     html,
-  })
+  }, { idempotencyKey: `booking-reminder-${booking.confirmation_code}` })
 
   if (error) {
     // T-04-02: log error object only — never log customer_email or booking fields
     console.error('[email] reminder send failed:', error)
+    throw new Error('Reminder email delivery failed')
   }
 }

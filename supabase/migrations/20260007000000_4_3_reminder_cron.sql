@@ -3,10 +3,11 @@
 -- Schedules hourly HTTP call to /api/cron/reminder via pg_net (D-08)
 --
 -- PREREQUISITES (manual steps before running this migration):
--- 1. Enable pg_net in Supabase Dashboard → Database → Extensions → pg_net
--- 2. Run in SQL editor: ALTER DATABASE postgres SET "app.cron_secret" = '<your-CRON_SECRET-value>';
+-- 1. Run in SQL editor: ALTER DATABASE postgres SET "app.cron_secret" = '<your-CRON_SECRET-value>';
 -- 3. Run in SQL editor: ALTER DATABASE postgres SET "app.next_url" = 'https://your-production-domain.vercel.app';
 -- These settings are read at cron fire time via current_setting().
+
+CREATE EXTENSION IF NOT EXISTS pg_net;
 
 DO $$
 BEGIN

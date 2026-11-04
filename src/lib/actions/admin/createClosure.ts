@@ -30,7 +30,7 @@ export async function createClosure(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   const { startAt, endAt, reason, force } = params
 
@@ -41,29 +41,15 @@ export async function createClosure(
     return { success: false, error: 'Invalid date range.' }
   }
 
-  if (!force) {
-    // D-14: check for conflicting confirmed/pending bookings
-    const { data: conflicts, error: overlapError } = await supabase
-      .from('bookings')
-      .select('id, confirmation_code, band_name, customer_name, start_at, end_at')
-      .in('status', ['confirmed', 'pending'])
-      .lt('start_at', endAt)
-      .gt('end_at', startAt)
-
-    if (overlapError) return { success: false, error: overlapError.message }
-
-    if (conflicts && conflicts.length > 0) {
-      return { success: false, requiresConfirmation: true, conflicts }
-    }
-  }
-
-  const { error: insertError } = await supabase.from('blocked_slots').insert({
-    start_at: startAt,
-    end_at: endAt,
-    reason: reason ?? null,
-    type: 'maintenance',
+  const { data, error } = await supabase.rpc('create_admin_closure', {
+    p_start_at: new Date(startMs).toISOString(),
+    p_end_at: new Date(endMs).toISOString(),
+    p_reason: reason ?? null,
+    p_force: Boolean(force),
   })
-
-  if (insertError) return { success: false, error: insertError.message }
-  return { success: true }
+  if (error) return { success: false, error: error.message }
+  const result = data as { success?: boolean; requiresConfirmation?: boolean; conflicts?: ClosureConflict[] }
+  if (result.requiresConfirmation) return { success: false, requiresConfirmation: true, conflicts: result.conflicts ?? [] }
+  if (result.success) return { success: true }
+  return { success: false, error: 'Closure could not be created.' }
 }

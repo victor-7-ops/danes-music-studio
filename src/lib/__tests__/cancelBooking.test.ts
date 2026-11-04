@@ -17,6 +17,13 @@ describe('cancelBooking', () => {
     vi.mocked(deleteGcalEvent).mockClear()
   })
 
+  it('denies an authenticated user without the trusted app_metadata role before any admin query', async () => {
+    const client = makeMockClient({}, { user: { id: 'ordinary-user', app_metadata: { role: 'member' } } })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+    expect(await cancelBooking('booking-1')).toEqual({ success: false, error: 'Unauthorized' })
+    expect(client.from).not.toHaveBeenCalled()
+  })
+
   it('happy path on a confirmed booking: flips status, emails, and deletes the gcal event', async () => {
     const booking = {
       id: 'booking-1',

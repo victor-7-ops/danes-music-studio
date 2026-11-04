@@ -14,7 +14,7 @@ export async function confirmDeposit(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   if (!bookingId || typeof bookingId !== 'string') {
     return { success: false, error: 'Invalid booking ID.' }

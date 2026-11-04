@@ -26,6 +26,16 @@ export interface Settings {
   holdWindowMinutes: number
 }
 
+export function isAvailabilityBlockingBooking(
+  status: string,
+  holdExpiresAt: string | null,
+  nowIso: string
+): boolean {
+  if (status === 'confirmed' || status === 'completed') return true
+  if (status !== 'pending') return false
+  return holdExpiresAt === null || holdExpiresAt > nowIso
+}
+
 export function getAvailableSlots(params: {
   date: string              // "YYYY-MM-DD" in Asia/Manila calendar date
   bookings: DateRange[]     // CALLER pre-filters: confirmed + non-expired pending only

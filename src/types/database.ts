@@ -127,6 +127,8 @@ export type Database = {
           payment_proof_url: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
           reminder_sent: boolean
+          reminder_claimed_at: string | null
+          reminder_attempts: number
           reschedule_from: string | null
           service_type_id: string
           source: Database["public"]["Enums"]["booking_source"]
@@ -154,6 +156,8 @@ export type Database = {
           payment_proof_url?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           reminder_sent?: boolean
+          reminder_claimed_at?: string | null
+          reminder_attempts?: number
           reschedule_from?: string | null
           service_type_id: string
           source?: Database["public"]["Enums"]["booking_source"]
@@ -181,6 +185,8 @@ export type Database = {
           payment_proof_url?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
           reminder_sent?: boolean
+          reminder_claimed_at?: string | null
+          reminder_attempts?: number
           reschedule_from?: string | null
           service_type_id?: string
           source?: Database["public"]["Enums"]["booking_source"]
@@ -345,7 +351,10 @@ export type Database = {
       }
       settings: {
         Row: {
+          account_name: string | null
+          account_number: string | null
           bank_details: string | null
+          bank_name: string | null
           buffer_minutes: number
           default_deposit_pct: number
           gcash_qr_url: string | null
@@ -357,7 +366,10 @@ export type Database = {
           reminder_enabled: boolean
         }
         Insert: {
+          account_name?: string | null
+          account_number?: string | null
           bank_details?: string | null
+          bank_name?: string | null
           buffer_minutes?: number
           default_deposit_pct?: number
           gcash_qr_url?: string | null
@@ -369,7 +381,10 @@ export type Database = {
           reminder_enabled?: boolean
         }
         Update: {
+          account_name?: string | null
+          account_number?: string | null
           bank_details?: string | null
+          bank_name?: string | null
           buffer_minutes?: number
           default_deposit_pct?: number
           gcash_qr_url?: string | null
@@ -411,6 +426,19 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_customer_reservations: {
+        Args: { p_request: Json }
+        Returns: Json
+      }
+      create_admin_closure: {
+        Args: { p_start_at: string; p_end_at: string; p_reason: string | null; p_force?: boolean }
+        Returns: Json
+      }
+      claim_booking_reminders: {
+        Args: { p_start: string; p_end: string }
+        Returns: Database["public"]["Tables"]["bookings"]["Row"][]
+      }
+      is_studio_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       reserve_equipment: {
         Args: {
           p_booking_id: string

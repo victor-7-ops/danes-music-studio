@@ -1,6 +1,7 @@
+import 'server-only'
 import { google } from 'googleapis'
 import { randomUUID } from 'crypto'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { decryptToken } from './crypto'
 
 /**
@@ -43,7 +44,7 @@ export type GcalClientResult = {
  * a ready-to-use OAuth2Client + metadata. Returns null if not connected.
  */
 export async function getGcalClient(): Promise<GcalClientResult | null> {
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as unknown as { from(table: string): any }
   const { data, error } = await db

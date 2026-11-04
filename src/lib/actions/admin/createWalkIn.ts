@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { pushGcalEvent } from '@/lib/gcal/pushSync'
 import { SERVICES, isServiceSlug, type ServiceSlug } from '@/lib/services'
+import { createConfirmationCode } from '@/lib/confirmationCode'
 
 export interface CreateWalkInParams {
   date: string      // "YYYY-MM-DD"
@@ -19,7 +20,7 @@ export async function createWalkIn(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   const { date, start, end, bandName } = params
   const service: ServiceSlug =
@@ -74,7 +75,7 @@ export async function createWalkIn(
   const total_amount = hours * serviceType.rate_per_hour
   const deposit_amount = Math.floor(total_amount * serviceType.deposit_pct)
 
-  const code = `DMS-${crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 4)}`
+  const code = createConfirmationCode()
 
   const { data: inserted, error: insertError } = await supabase.from('bookings').insert({
     confirmation_code: code,

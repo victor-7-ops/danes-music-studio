@@ -16,15 +16,19 @@ export async function upsertSpecialHours(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   const { date, openTime, closeTime, isClosed } = params
 
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+  const dateValue = new Date(`${date}T00:00:00Z`)
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(dateValue.getTime()) || dateValue.toISOString().slice(0, 10) !== date) {
     return { success: false, error: 'Invalid date.' }
   }
   if (!isClosed && (!openTime || !closeTime)) {
     return { success: false, error: 'openTime and closeTime are required when not closed.' }
+  }
+  if (!isClosed && (!/^\d{2}:00$/.test(openTime!) || !/^\d{2}:00$/.test(closeTime!) || openTime! >= closeTime! || Number(closeTime!.slice(0, 2)) > 24)) {
+    return { success: false, error: 'Special hours must use whole hours and close after opening.' }
   }
 
   // D-15: upsert on UNIQUE constraint on date

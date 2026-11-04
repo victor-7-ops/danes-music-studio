@@ -16,7 +16,7 @@ Next.js 14 · Supabase · Resend · Vercel
 
 ### 1. Prerequisites
 
-- Node.js 18+
+- Node.js 22.14.x
 - pnpm (`npm install -g pnpm`)
 - Supabase account + project
 - Resend account
@@ -46,8 +46,9 @@ Required for local dev:
 | `NEXT_PUBLIC_URL` | `http://localhost:3000` for local dev |
 | `RESEND_API_KEY` | Resend Dashboard → API Keys |
 | `RESEND_FROM_EMAIL` | Verified sender address in Resend (e.g. `noreply@yourdomain.com`) |
-| `CRON_SECRET` | Any random string — secures `/api/cron/expire-holds` |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Project Settings → API → service_role secret (**LOCAL ONLY — do NOT add to Vercel**) |
+| `CRON_SECRET` | Any random secret string — secures cron routes |
+| `SUPABASE_SERVICE_ROLE_KEY` | Supabase Dashboard → Project Settings → API → service_role secret (private server variable; never prefix with `NEXT_PUBLIC_`) |
+| `GOOGLE_TOKEN_ENCRYPTION_KEY` | 32 random bytes encoded as 64 hex characters; encrypts the stored Google Calendar refresh token |
 
 > **Important:** The env var name is `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` — **not** `NEXT_PUBLIC_SUPABASE_ANON_KEY`. If your `.env.example` shows `ANON_KEY`, rename it to `PUBLISHABLE_KEY` to match the code.
 
@@ -109,8 +110,10 @@ Vercel Dashboard → Project → **Settings** → **Environment Variables**. Add
 | `RESEND_API_KEY` | (from Resend Dashboard → API Keys) |
 | `RESEND_FROM_EMAIL` | (verified sender address in Resend) |
 | `CRON_SECRET` | (any random secret string — use a password generator) |
+| `SUPABASE_SERVICE_ROLE_KEY` | (private server variable required for booking transactions, customer capability reads, proof uploads, and reminders) |
+| `GOOGLE_TOKEN_ENCRYPTION_KEY` | (64 hex chars from `openssl rand -hex 32`) |
 
-**Do NOT add `SUPABASE_SERVICE_ROLE_KEY` to Vercel** — it is for local seed only and must not be deployed.
+Set `SUPABASE_SERVICE_ROLE_KEY` as a **private server environment variable** in Vercel. Never name it `NEXT_PUBLIC_*`, expose it to client bundles, or log it. The server uses it only behind capability checks, the cron secret, or authenticated admin checks. Set `GOOGLE_TOKEN_ENCRYPTION_KEY` as a private server variable too; production startup validates its format, and the Google Calendar crypto module requires it when server code loads.
 
 > `PAYMONGO_SECRET_KEY` and `PAYMONGO_WEBHOOK_SECRET` are **not currently required** — PayMongo integration exists in code but is intentionally unwired (the live payment path is manual GCash QR/bank-transfer + proof upload). Keep these unset unless you're specifically re-enabling PayMongo; there is no webhook to register for a working deploy.
 
@@ -139,7 +142,17 @@ Vercel Dashboard → Project → **Settings** → **Environment Variables**. Add
 
 ## Admin
 
-`/admin` — Supabase Auth login. Single owner account. Create the admin user via Supabase Dashboard → Authentication → Users → **Add User**.
+`/admin` — Supabase Auth login. Public signup is disabled. Create the owner account from Supabase Dashboard → Authentication → Users → **Add User**, then assign the trusted role in the SQL editor:
+
+```sql
+UPDATE auth.users
+SET raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role":"admin"}'::jsonb
+WHERE id = '<owner-user-uuid>';
+```
+
+Use `raw_app_meta_data` only. The app ignores user-editable `raw_user_meta_data`. After changing the role, sign out and sign in again (or refresh the session) so the JWT includes the new `app_metadata.role` claim. Provision exactly the intended owner account; do not grant admin through user metadata.
+
+Before deploying the access-control migration, inspect live table grants, RLS policies, auth signup settings, and any exposed booking capabilities. The migration revokes anonymous booking reads/writes and replaces permissive admin policies. Rotate customer cancel tokens if an earlier deployment exposed them.
 
 ---
 
@@ -153,6 +166,6 @@ Vercel Dashboard → Project → **Settings** → **Environment Variables**. Add
 | `RESEND_API_KEY` | Local + Vercel | From Resend dashboard |
 | `RESEND_FROM_EMAIL` | Local + Vercel | Verified sender domain in Resend |
 | `CRON_SECRET` | Local + Vercel | Arbitrary secret string |
-| `SUPABASE_SERVICE_ROLE_KEY` | Local only | Seed script — **never deploy** |
+| `SUPABASE_SERVICE_ROLE_KEY` | Local + Vercel server runtime | Required for trusted server routes; private secret, never expose to browser |
 | `PAYMONGO_SECRET_KEY` | Not required | PayMongo integration exists in code but is intentionally unwired — keep unset unless re-enabling it |
 | `PAYMONGO_WEBHOOK_SECRET` | Not required | Same as above — no webhook to register for the active (manual QR/bank-transfer) payment path |

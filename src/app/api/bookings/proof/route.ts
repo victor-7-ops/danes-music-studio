@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { sendTelegramMessage, paymentProofUploadedMessage } from '@/lib/telegram'
 import { isValidImageMagicBytes } from '@/lib/imageMagicBytes'
+import { InMemoryRateLimiter } from '@/lib/lookupPreviousBooking'
 
 export const runtime = 'nodejs'
 
@@ -12,15 +13,35 @@ const ALLOWED_TYPES: Record<string, string> = {
   'image/heic': 'heic',
 }
 const MAX_BYTES = 8 * 1024 * 1024
+const uploadLimiter = new InMemoryRateLimiter({ limit: 5, windowMs: 60 * 60 * 1000 })
 
 export async function POST(req: NextRequest) {
-  const form = await req.formData()
-  const ref = (form.get('ref') as string | null)?.trim().toUpperCase() ?? ''
-  const file = form.get('file') as File | null
-
-  if (!ref || !file) {
-    return NextResponse.json({ error: 'Missing reference or file' }, { status: 400 })
+  let form: FormData
+  try {
+    form = await req.formData()
+  } catch {
+    return NextResponse.json({ error: 'Invalid upload form' }, { status: 400 })
   }
+  const rawRef = form.get('ref')
+  const rawToken = form.get('token')
+  const rawFile = form.get('file')
+  const isFile = typeof rawFile === 'object' && rawFile !== null
+    && typeof (rawFile as File).arrayBuffer === 'function'
+    && typeof (rawFile as File).slice === 'function'
+    && typeof (rawFile as File).size === 'number'
+    && typeof (rawFile as File).type === 'string'
+  if (typeof rawRef !== 'string' || typeof rawToken !== 'string' || !isFile) {
+    return NextResponse.json({ error: 'Missing booking link or file' }, { status: 400 })
+  }
+  const ref = rawRef.trim().toUpperCase()
+  const token = rawToken.trim()
+  const file = rawFile
+
+  if (!ref || !token || !file) {
+    return NextResponse.json({ error: 'Missing booking link or file' }, { status: 400 })
+  }
+  const key = `${req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown'}:${token}`
+  if (!uploadLimiter.check(key)) return NextResponse.json({ error: 'Too many uploads. Try again later.' }, { status: 429 })
   const ext = ALLOWED_TYPES[file.type]
   if (!ext) {
     return NextResponse.json({ error: 'Upload a JPG, PNG, WEBP, or HEIC image' }, { status: 400 })
@@ -38,22 +59,26 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceClient()
 
-  const { data: booking } = await supabase
+  const { data: booking, error: bookingError } = await supabase
     .from('bookings')
     .select(
-      'id, status, confirmation_code, customer_name, band_name, payment_method, deposit_amount, amount_paid, total_amount, service_types(name)'
+      'id, status, hold_expires_at, payment_proof_url, confirmation_code, customer_name, band_name, payment_method, deposit_amount, amount_paid, total_amount, service_types(name)'
     )
     .eq('confirmation_code', ref)
+    .eq('cancel_token', token)
     .single()
 
-  if (!booking) {
+  if (bookingError || !booking) {
     return NextResponse.json({ error: 'Booking not found' }, { status: 404 })
   }
   if (booking.status !== 'pending') {
     return NextResponse.json({ error: 'This booking is no longer pending payment' }, { status: 409 })
   }
+  if ((booking.hold_expires_at && booking.hold_expires_at <= new Date().toISOString()) || booking.payment_proof_url) {
+    return NextResponse.json({ error: booking.payment_proof_url ? 'Payment proof has already been submitted' : 'This payment hold has expired' }, { status: 409 })
+  }
 
-  const path = `${ref}-${Date.now()}.${ext}`
+  const path = `${booking.id}/${crypto.randomUUID()}.${ext}`
 
   const { error: uploadError } = await supabase.storage
     .from('payment-proofs')
@@ -63,11 +88,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 })
   }
 
-  // Clear the hold expiry — booking now awaits manual admin review, not the timer.
-  await supabase
+  // Conditional update is the atomic single-upload claim. On failure remove
+  // the object so it cannot become an orphan or overwrite an accepted proof.
+  const now = new Date().toISOString()
+  const { data: updated, error: updateError } = await supabase
     .from('bookings')
     .update({ payment_proof_url: path, hold_expires_at: null })
     .eq('id', booking.id)
+    .eq('status', 'pending')
+    .is('payment_proof_url', null)
+    .or(`hold_expires_at.is.null,hold_expires_at.gt.${now}`)
+    .select('id')
+    .maybeSingle()
+
+  if (updateError || !updated) {
+    await supabase.storage.from('payment-proofs').remove([path])
+    return NextResponse.json({ error: 'Booking changed before the upload completed. Refresh your private payment link.' }, { status: 409 })
+  }
 
   const svc = booking.service_types as { name: string } | { name: string }[] | null
   const serviceTypeName = (Array.isArray(svc) ? svc[0]?.name : svc?.name) ?? 'Rehearsal'

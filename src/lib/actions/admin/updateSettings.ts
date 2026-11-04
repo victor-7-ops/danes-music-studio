@@ -22,12 +22,15 @@ export async function updateSettings(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   const { operatingOpen, operatingClose, holdWindowMinutes, defaultDepositPct, reminderEnabled, ratePerHour, gcashQrUrl, bankName, accountName, accountNumber } = params
 
   const timeOk = /^\d{2}:\d{2}$/.test(operatingOpen) && /^\d{2}:\d{2}$/.test(operatingClose)
   if (!timeOk) return { success: false, error: 'Invalid time format.' }
+  if (!/^\d{2}:00$/.test(operatingOpen) || !/^\d{2}:00$/.test(operatingClose) || operatingOpen >= operatingClose || Number(operatingClose.slice(0, 2)) > 24) {
+    return { success: false, error: 'Operating hours must use whole hours and close after opening.' }
+  }
   if (!Number.isInteger(holdWindowMinutes) || holdWindowMinutes <= 0) {
     return { success: false, error: 'holdWindowMinutes must be a positive integer.' }
   }
@@ -72,7 +75,7 @@ export async function updateSettings(
   // D-13: no retroactive update to existing bookings
   const { error: rateError } = await supabase
     .from('service_types')
-    .update({ rate_per_hour: ratePerHour })
+    .update({ rate_per_hour: ratePerHour, deposit_pct: defaultDepositPct / 100 })
     .eq('name', 'Rehearsal')
 
   if (rateError) return { success: false, error: rateError.message }

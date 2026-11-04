@@ -3,9 +3,6 @@ import SlotGridStep from '@/components/booking/SlotGridStep'
 import { createClient } from '@/lib/supabase/server'
 import { SERVICES, isServiceSlug } from '@/lib/services'
 
-// 9 AM through 9 PM (hour 21 = 9 PM slot, ends at 10 PM)
-const ALL_SLOT_HOURS: number[] = Array.from({ length: 13 }, (_, i) => i + 9)
-
 interface PageProps {
   searchParams: Promise<{ date?: string; service?: string }>
 }
@@ -20,12 +17,15 @@ export default async function SlotsPage({ searchParams }: PageProps) {
   }
 
   const supabase = await createClient()
-  const { data: serviceType } = await supabase
+  const [{ data: serviceType }, { data: settings }, { data: specialHours }] = await Promise.all([supabase
     .from('service_types')
     .select('rate_per_hour, deposit_pct')
     .eq('name', SERVICES[service].name)
     .eq('active', true)
-    .single()
+    .single(),
+    supabase.from('settings').select('operating_open, operating_close').single(),
+    supabase.from('special_hours').select('open_time, close_time, closed').eq('date', date).maybeSingle(),
+  ])
 
   if (!serviceType) {
     redirect('/book')
@@ -40,6 +40,14 @@ export default async function SlotsPage({ searchParams }: PageProps) {
     ? await res.json()
     : []
 
+  const opening = specialHours?.open_time ?? settings?.operating_open ?? '09:00'
+  const closing = specialHours?.close_time ?? settings?.operating_close ?? '22:00'
+  const openHour = Number(opening.slice(0, 2))
+  const closeHour = Number(closing.slice(0, 2))
+  const allSlotHours = specialHours?.closed || !Number.isFinite(openHour) || !Number.isFinite(closeHour)
+    ? []
+    : Array.from({ length: Math.max(0, closeHour - openHour) }, (_, i) => openHour + i)
+
   return (
     <SlotGridStep
       date={date}
@@ -47,7 +55,7 @@ export default async function SlotsPage({ searchParams }: PageProps) {
       rateCents={serviceType.rate_per_hour}
       depositPct={serviceType.deposit_pct}
       slots={slots}
-      allSlotHours={ALL_SLOT_HOURS}
+      allSlotHours={allSlotHours}
     />
   )
 }

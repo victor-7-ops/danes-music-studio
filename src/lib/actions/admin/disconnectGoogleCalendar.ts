@@ -8,7 +8,7 @@ export async function disconnectGoogleCalendar(): Promise<{ success: boolean; er
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   // Fetch the current row to get watch channel info
   const { data: row } = await supabase

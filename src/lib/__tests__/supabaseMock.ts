@@ -67,7 +67,7 @@ function createChainable(result: QueryResult) {
  */
 export function makeMockClient(
   tableQueues: Record<string, QueryResult[]>,
-  opts: { user?: { id: string } | null; rpc?: Record<string, QueryResult[]> } = {}
+  opts: { user?: { id: string; app_metadata?: Record<string, unknown> } | null; rpc?: Record<string, QueryResult[]> } = {}
 ) {
   const queues: Record<string, QueryResult[]> = Object.fromEntries(
     Object.entries(tableQueues).map(([k, v]) => [k, [...v]])
@@ -104,7 +104,7 @@ export function makeMockClient(
     from,
     rpc,
     auth: {
-      getUser: vi.fn(() => Promise.resolve({ data: { user } })),
+      getUser: vi.fn(() => Promise.resolve({ data: { user: user ? { ...user, app_metadata: user.app_metadata ?? { role: 'admin' } } : user } })),
     },
   }
 }

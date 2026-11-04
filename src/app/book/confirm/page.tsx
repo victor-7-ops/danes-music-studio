@@ -1,11 +1,13 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { DmsHero } from '@/components/DmsHero'
+import { formatManila } from '@/lib/emails/format'
 
 interface PageProps {
   searchParams: Promise<{
     code?: string
+    token?: string
     payment?: string
   }>
 }
@@ -13,22 +15,23 @@ interface PageProps {
 export default async function ConfirmPage({ searchParams }: PageProps) {
   const params = await searchParams
   const code = params.code
+  const token = params.token
   const payment = params.payment
 
   if (!code) {
     redirect('/book')
   }
 
-  const supabase = await createClient()
+  if (!token) return <RecoveryPage />
+  const supabase = createServiceClient()
   const { data: booking } = await supabase
     .from('bookings')
     .select('status, confirmation_code, hold_expires_at, total_amount, deposit_amount, payment_method, start_at, end_at, band_name, customer_name, payment_proof_url')
     .eq('confirmation_code', code)
+    .eq('cancel_token', token)
     .single()
 
-  if (!booking) {
-    redirect('/book')
-  }
+  if (!booking) return <RecoveryPage />
 
   // Branch A — confirmed
   if (booking.status === 'confirmed') {
@@ -60,6 +63,11 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
     )
   }
 
+  if (booking.status === 'cancelled' || booking.status === 'completed' || (booking.hold_expires_at && booking.hold_expires_at < new Date().toISOString())) {
+    const statusLabel = booking.status === 'completed' ? 'Booking completed' : booking.status === 'cancelled' ? 'Booking cancelled' : 'Booking hold expired'
+    return <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16 text-center"><DmsHero dark /><h1 className="font-display text-4xl uppercase text-ink mb-4">{statusLabel}</h1><p className="font-sans text-sm text-muted max-w-sm">This booking is no longer awaiting payment. Contact the studio if you need help.</p><Link href="mailto:danesmusicstudio@gmail.com" className="mt-6 underline">Contact the studio</Link></div>
+  }
+
   // Branch B — payment cancelled
   if (payment === 'cancelled') {
     return (
@@ -81,7 +89,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
         </div>
 
         <Link
-          href={`/book/pay?code=${code}`}
+          href={`/book/pay?code=${code}&token=${token}`}
           className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity motion-reduce:transition-none mb-6 inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         >
           Try Payment Again
@@ -106,7 +114,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
         </div>
 
         <h1 className="font-display text-6xl uppercase text-ink mb-4">
-          Payment Received
+          Proof Submitted
         </h1>
 
         <p className="font-sans text-muted mb-8 max-w-sm">
@@ -144,11 +152,11 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
       </div>
 
       <p className="font-sans text-sm text-muted mb-10 max-w-sm">
-        We&apos;ve held your slot for 15 minutes. Complete payment to confirm your booking.
+        {booking.hold_expires_at ? <>Complete payment before {formatManila(booking.hold_expires_at, 'datetime')} to confirm your booking.</> : 'Your booking is awaiting studio review.'}
       </p>
 
       <Link
-        href={`/book/pay?code=${code}`}
+        href={`/book/pay?code=${code}&token=${token}`}
         className="font-sans text-sm uppercase tracking-widest bg-ink text-bg px-6 py-3 hover:opacity-80 transition-opacity motion-reduce:transition-none mb-6 inline-block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
       >
         Continue to Payment →
@@ -162,4 +170,8 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
       </Link>
     </div>
   )
+}
+
+function RecoveryPage() {
+  return <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16 text-center"><DmsHero dark /><h1 className="font-display text-4xl uppercase text-ink mb-4">Private link required</h1><p className="font-sans text-sm text-muted max-w-sm">Open the private manage link from your booking email. If you no longer have it, contact the studio with your booking reference.</p><Link href="mailto:danesmusicstudio@gmail.com" className="mt-6 underline">Contact the studio</Link></div>
 }

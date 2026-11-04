@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 
 interface PaymentProofUploadProps {
   confirmationCode: string
+  token: string
 }
 
-export function PaymentProofUpload({ confirmationCode }: PaymentProofUploadProps) {
+export function PaymentProofUpload({ confirmationCode, token }: PaymentProofUploadProps) {
   const [file, setFile] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,6 +21,7 @@ export function PaymentProofUpload({ confirmationCode }: PaymentProofUploadProps
 
     const form = new FormData()
     form.set('ref', confirmationCode)
+    form.set('token', token)
     form.set('file', file)
 
     try {
@@ -30,7 +32,7 @@ export function PaymentProofUpload({ confirmationCode }: PaymentProofUploadProps
         setLoading(false)
         return
       }
-      router.push(`/book/confirm?code=${confirmationCode}&proof=uploaded`)
+      router.push(`/book/confirm?code=${confirmationCode}&token=${token}&proof=uploaded`)
     } catch {
       setError('Upload failed. Please try again.')
       setLoading(false)

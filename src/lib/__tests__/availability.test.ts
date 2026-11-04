@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getAvailableSlots } from '../availability'
+import { getAvailableSlots, isAvailabilityBlockingBooking } from '../availability'
 
 const DEFAULT_SETTINGS = {
   operatingOpen: '09:00',
@@ -8,6 +8,14 @@ const DEFAULT_SETTINGS = {
 }
 
 describe('getAvailableSlots', () => {
+  it('treats pending null-expiry and completed rows as blockers, but ignores expired holds', () => {
+    const now = '2026-11-04T00:00:00.000Z'
+    expect(isAvailabilityBlockingBooking('pending', null, now)).toBe(true)
+    expect(isAvailabilityBlockingBooking('pending', '2026-11-04T00:01:00.000Z', now)).toBe(true)
+    expect(isAvailabilityBlockingBooking('pending', '2026-11-03T23:59:00.000Z', now)).toBe(false)
+    expect(isAvailabilityBlockingBooking('completed', null, now)).toBe(true)
+    expect(isAvailabilityBlockingBooking('cancelled', null, now)).toBe(false)
+  })
   it('returns 13 slots on a normal day (9AM–10PM, no overrides)', () => {
     const slots = getAvailableSlots({
       date: '2024-06-24',

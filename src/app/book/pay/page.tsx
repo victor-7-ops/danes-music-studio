@@ -1,12 +1,12 @@
 import { redirect } from 'next/navigation'
 import Image from 'next/image'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { DmsHero } from '@/components/DmsHero'
 import { PaymentProofUpload } from '@/components/booking/PaymentProofUpload'
 import { formatPHP } from '@/lib/emails/format'
 
 interface PageProps {
-  searchParams: Promise<{ code?: string }>
+  searchParams: Promise<{ code?: string; token?: string }>
 }
 
 // PayMongo is off — manual QR + proof upload is the only active payment path.
@@ -15,19 +15,22 @@ interface PageProps {
 export default async function PayPage({ searchParams }: PageProps) {
   const params = await searchParams
   const code = params.code
+  const token = params.token
 
   if (!code) {
     redirect('/book')
   }
+  if (!token) return <RecoveryPage />
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const [bookingResult, settingsResult] = await Promise.all([
     supabase
       .from('bookings')
       .select('id, status, hold_expires_at, deposit_amount, total_amount, payment_method, confirmation_code, payment_proof_url')
       .eq('confirmation_code', code)
+      .eq('cancel_token', token)
       .single(),
-    supabase.from('settings').select('gcash_qr_url, bank_details').single(),
+    supabase.from('settings').select('gcash_qr_url, bank_details, bank_name, account_name, account_number').single(),
   ])
 
   const { data: booking } = bookingResult
@@ -38,7 +41,7 @@ export default async function PayPage({ searchParams }: PageProps) {
   }
 
   if (booking.status !== 'pending') {
-    redirect(`/book/confirm?code=${code}`)
+    redirect(`/book/confirm?code=${code}&token=${token}`)
   }
 
   if (booking.hold_expires_at && booking.hold_expires_at < new Date().toISOString()) {
@@ -46,7 +49,7 @@ export default async function PayPage({ searchParams }: PageProps) {
   }
 
   if (booking.payment_proof_url) {
-    redirect(`/book/confirm?code=${code}`)
+    redirect(`/book/confirm?code=${code}&token=${token}`)
   }
 
   const amountCentavos = booking.payment_method === 'deposit'
@@ -66,7 +69,7 @@ export default async function PayPage({ searchParams }: PageProps) {
         {booking.confirmation_code}
       </p>
 
-      {!settings?.gcash_qr_url && !settings?.bank_details ? (
+  {!settings?.gcash_qr_url && !settings?.bank_details && !settings?.bank_name && !settings?.account_number ? (
         <p className="font-sans text-muted mb-8 max-w-sm">
           Payment not configured — contact the studio to arrange payment.
         </p>
@@ -84,19 +87,27 @@ export default async function PayPage({ searchParams }: PageProps) {
             </div>
           )}
 
-          {settings.bank_details && (
+          {settings.bank_name || settings.account_name || settings.account_number ? (
+            <p className="font-sans text-sm text-muted mb-8 max-w-sm whitespace-pre-line">
+              {[settings.bank_name, settings.account_name, settings.account_number].filter(Boolean).join('\n')}
+            </p>
+          ) : settings.bank_details ? (
             <p className="font-sans text-sm text-muted mb-8 max-w-sm whitespace-pre-line">
               {settings.bank_details}
             </p>
-          )}
+          ) : null}
 
           <p className="font-sans text-sm text-ink mb-6 max-w-sm">
             Scan the QR or transfer to the account above, then upload a screenshot of your payment.
           </p>
 
-          <PaymentProofUpload confirmationCode={booking.confirmation_code} />
+          <PaymentProofUpload confirmationCode={booking.confirmation_code} token={token} />
         </>
       )}
     </div>
   )
+}
+
+function RecoveryPage() {
+  return <div className="min-h-screen bg-bg flex flex-col items-center justify-center px-6 py-16 text-center"><DmsHero dark /><h1 className="font-display text-4xl uppercase text-ink mb-4">Manage link required</h1><p className="font-sans text-sm text-muted max-w-sm">Use the private payment link from your booking email. If you no longer have it, contact the studio and include your booking reference.</p><a href="mailto:danesmusicstudio@gmail.com" className="mt-6 underline">Contact the studio</a></div>
 }

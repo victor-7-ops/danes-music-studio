@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) {
+  if (!user || user.app_metadata?.role !== 'admin') {
     return Response.redirect(new URL('/admin/login', request.url))
   }
 

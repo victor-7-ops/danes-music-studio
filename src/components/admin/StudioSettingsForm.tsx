@@ -205,7 +205,7 @@ export default function StudioSettingsForm({ initialForm, children }: StudioSett
             />
           </label>
           <label className="block">
-            <span className={labelClass}>Default deposit (%)</span>
+            <span className={labelClass}>Rehearsal deposit (%)</span>
             <input
               type="number"
               min={1}

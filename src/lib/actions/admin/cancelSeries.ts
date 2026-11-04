@@ -19,7 +19,7 @@ export async function cancelSeries(seriesId: string): Promise<CancelSeriesResult
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized', cancelled: 0, failed: [] }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized', cancelled: 0, failed: [] }
 
   const { data: bookings, error: fetchError } = await supabase
     .from('bookings')

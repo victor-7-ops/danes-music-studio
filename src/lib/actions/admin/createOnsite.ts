@@ -1,6 +1,7 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createConfirmationCode } from '@/lib/confirmationCode'
 
 export type PaymentType = 'unpaid' | 'deposit' | 'full'
 
@@ -22,7 +23,7 @@ export async function createOnsite(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   const { date, start, end, customerName, customerEmail, customerPhone, bandName, paymentType } = params
 
@@ -53,7 +54,7 @@ export async function createOnsite(
   const total_amount = hours * serviceType.rate_per_hour
   const deposit_amount = Math.floor(total_amount * serviceType.deposit_pct)
 
-  const code = `DMS-${crypto.randomUUID().replace(/-/g, '').toUpperCase().slice(0, 4)}`
+  const code = createConfirmationCode()
 
   const start_at = `${date}T${start}:00+08:00`
   const end_at = `${date}T${end}:00+08:00`

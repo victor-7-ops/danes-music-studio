@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import DetailsForm from '@/components/booking/DetailsForm'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { SERVICES, isServiceSlug } from '@/lib/services'
 import { getUnavailableEquipment } from '@/lib/equipmentAvailability'
 
@@ -22,7 +22,7 @@ export default async function DetailsPage({ searchParams }: PageProps) {
     redirect('/book')
   }
 
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   const [{ data: serviceType }, { data: equipment }] = await Promise.all([
     supabase
       .from('service_types')
@@ -47,15 +47,22 @@ export default async function DetailsPage({ searchParams }: PageProps) {
   // non-cancelled bookings only, same overlap semantics.
   let unavailableEquipmentIds: string[] = []
   if (equipment && equipment.length > 0) {
-    const { data: usageRows } = await supabase
+    const start_at = `${date}T${start}:00+08:00`
+    const end_at = `${date}T${end}:00+08:00`
+    const { data: usageRows, error: usageError } = await supabase
       .from('booking_equipment')
       .select('equipment_id, bookings!inner(status, start_at, end_at)')
       .in(
         'equipment_id',
         equipment.map(item => item.id)
       )
-      .neq('bookings.status', 'cancelled')
+      .in('bookings.status', ['pending', 'confirmed', 'completed'])
+      .lt('bookings.start_at', end_at)
+      .gt('bookings.end_at', start_at)
 
+    if (usageError) {
+      unavailableEquipmentIds = equipment.map(item => item.id)
+    }
     const existingUsage = (usageRows ?? []).map(row => {
       const booking = Array.isArray(row.bookings) ? row.bookings[0] : row.bookings
       return {
@@ -65,15 +72,14 @@ export default async function DetailsPage({ searchParams }: PageProps) {
       }
     })
 
-    const start_at = `${date}T${start}:00+08:00`
-    const end_at = `${date}T${end}:00+08:00`
-
-    unavailableEquipmentIds = getUnavailableEquipment(
-      equipment.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })),
-      existingUsage,
-      new Date(start_at),
-      new Date(end_at)
-    ).map(item => item.id)
+    if (!usageError) {
+      unavailableEquipmentIds = getUnavailableEquipment(
+        equipment.map(item => ({ id: item.id, name: item.name, quantity: item.quantity })),
+        existingUsage,
+        new Date(start_at),
+        new Date(end_at)
+      ).map(item => item.id)
+    }
   }
 
   return (

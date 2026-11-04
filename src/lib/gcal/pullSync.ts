@@ -1,6 +1,6 @@
 import { google, calendar_v3 } from 'googleapis'
 import { getGcalClient } from './client'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
 
 // Duck-typed shape for GaxiosError (googleapis-common is not a direct dep)
 type GaxiosLike = {
@@ -73,7 +73,7 @@ export async function runPullSync(): Promise<{ inserted: number; deleted: number
 
   const { oauth2Client, calendarId, googleTokensRow } = client
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
-  const supabase = await createClient()
+  const supabase = createServiceClient()
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const db = supabase as unknown as { from(table: string): any }
 

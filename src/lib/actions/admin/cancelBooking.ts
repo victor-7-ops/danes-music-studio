@@ -11,7 +11,7 @@ export async function cancelBooking(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   const { data: booking, error: fetchError } = await supabase
     .from('bookings')

@@ -12,6 +12,7 @@ export async function connectGoogleCalendar(): Promise<never> {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user) redirect('/admin/login')
+  if (user.app_metadata?.role !== 'admin') redirect('/')
 
   const state = randomUUID()
   const cookieStore = await cookies()

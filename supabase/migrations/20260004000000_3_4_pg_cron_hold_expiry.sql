@@ -2,10 +2,11 @@
 -- Part of Danes Music Studio booking app — payments layer (Phase 03)
 -- Cancels expired pending online bookings every 5 minutes.
 
--- PREREQUISITE (manual step — cannot be done in a migration):
--- Enable pg_cron in Supabase Dashboard → Database → Extensions → pg_cron → Enable
--- OR: Dashboard → Integrations → Cron → Enable
--- This migration will fail with "schema "cron" does not exist" if pg_cron is not enabled first.
+-- Must precede the first reference to cron.job for clean database resets.
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Supabase must have pg_cron available in shared_preload_libraries; this
+-- migration creates its schema before the first reference to cron.job.
 
 DO $$
 BEGIN

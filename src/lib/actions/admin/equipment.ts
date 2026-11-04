@@ -15,7 +15,7 @@ export async function createEquipment(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   const name = params.name.trim()
   if (name.length < 1) return { success: false, error: 'Name is required.' }
@@ -43,7 +43,7 @@ export async function updateEquipment(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   if (!id) return { success: false, error: 'Invalid equipment ID.' }
 
@@ -86,7 +86,7 @@ export async function deleteEquipment(
   const {
     data: { user },
   } = await supabase.auth.getUser()
-  if (!user) return { success: false, error: 'Unauthorized' }
+  if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
   if (!id) return { success: false, error: 'Invalid equipment ID.' }
 

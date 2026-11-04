@@ -8,12 +8,20 @@ on:
 jobs:
   ci:
     runs-on: ubuntu-latest
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: https://build.example.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_build_only
+      SUPABASE_SERVICE_ROLE_KEY: build_only_not_a_secret
+      NEXT_PUBLIC_URL: https://build.example.test
+      RESEND_API_KEY: re_build_only_dummy
+      CRON_SECRET: build_only_dummy_cron_secret
+      GOOGLE_TOKEN_ENCRYPTION_KEY: '0000000000000000000000000000000000000000000000000000000000000000'
     steps:
       - uses: actions/checkout@v4
 
       - uses: pnpm/action-setup@v4
         with:
-          version: 11
+          version: 12.11.2
 
       - uses: actions/setup-node@v4
         with:
@@ -31,3 +39,6 @@ jobs:
 
       - name: Unit tests
         run: pnpm test:run
+
+      - name: Production build
+        run: pnpm build
