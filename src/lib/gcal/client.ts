@@ -26,7 +26,7 @@ export function generateAuthUrl(
 ): string {
   return oauth2Client.generateAuthUrl({
     access_type: 'offline',
-    scope: ['https://www.googleapis.com/auth/calendar.events'],
+    scope: ['https://www.googleapis.com/auth/calendar.events', 'https://www.googleapis.com/auth/userinfo.email'],
     prompt: 'consent',
     state,
   })

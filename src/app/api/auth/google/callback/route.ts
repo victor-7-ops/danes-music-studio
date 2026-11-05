@@ -41,20 +41,23 @@ export async function GET(request: Request) {
     }
 
     const tokenInfo = await oauth2Client.getTokenInfo(tokens.access_token!)
-    const googleEmail = tokenInfo.email!
+    const googleEmail = tokenInfo.email
+    if (!googleEmail) throw new Error('Google did not return an account email')
 
     const encrypted = encryptToken(tokens.refresh_token)
 
     // Delete existing rows (single-row table, no sentinel needed)
-    await supabase.from('google_tokens').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    const { error: deleteError } = await supabase.from('google_tokens').delete().neq('id', '00000000-0000-0000-0000-000000000000')
+    if (deleteError) throw deleteError
 
     // Insert fresh row
-    await supabase.from('google_tokens').insert({
+    const { error: insertError } = await supabase.from('google_tokens').insert({
       encrypted_refresh_token: encrypted,
       google_email: googleEmail,
       calendar_id: 'primary',
       updated_at: new Date().toISOString(),
     })
+    if (insertError) throw insertError
 
     // Register watch channel — fire-and-forget, production only
     if (process.env.VERCEL_ENV === 'production') {
