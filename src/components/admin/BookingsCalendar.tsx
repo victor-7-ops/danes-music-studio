@@ -94,7 +94,7 @@ export function BookingsCalendar({
 
   return (
     <div className="h-full">
-      {warning && <p role="alert" className="mb-4 rounded-lg border border-ink/20 p-3 text-sm">{warning} <a className="underline" href="/admin/bookings">Open bookings</a></p>}
+      {warning && <p role="alert" className="mb-4 whitespace-pre-line rounded-lg border border-ink/20 p-3 text-sm">{warning} <a className="underline" href="/admin/bookings">Open bookings</a></p>}
       <Calendar
         localizer={localizer}
         events={bookings}

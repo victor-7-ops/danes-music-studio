@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
   if (error) return NextResponse.json({ error: 'Unable to reschedule booking. Please retry.' }, { status: 503 })
 
   if (booking.status === 'confirmed' || booking.gcal_event_id) {
-    await deleteGcalEvent(booking.gcal_event_id ?? booking.id.replace(/-/g, '')).catch((err: unknown) => {
+    await deleteGcalEvent(booking).catch((err: unknown) => {
       console.error('[gcal:push] reschedule delete failed', err)
     })
   }

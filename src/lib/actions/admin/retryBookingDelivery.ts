@@ -22,7 +22,7 @@ export async function retryBookingDelivery(bookingId: string, channel: 'calendar
   try {
     if (channel === 'calendar') {
       const synced = booking.status === 'cancelled'
-        ? await deleteGcalEvent(booking.gcal_event_id ?? booking.id.replace(/-/g, ''))
+        ? await deleteGcalEvent(booking)
         : await pushGcalEvent(booking.id)
       if (!synced) return { success: false, error: 'Connect Google Calendar in Settings first.' }
     } else {

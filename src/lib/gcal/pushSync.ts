@@ -1,6 +1,11 @@
 import { google } from 'googleapis'
 import { getGcalClient } from './client'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
+import type { Tables } from '@/types/database'
+
+function bookingEventId(bookingId: string): string {
+  return bookingId.replace(/-/g, '')
+}
 
 /**
  * Idempotent push: if booking already has a gcal_event_id, patches the existing event.
@@ -61,7 +66,7 @@ export async function pushGcalEvent(bookingId: string): Promise<boolean> {
     })
   } else {
     // New event: insert then write gcal_event_id back
-    const eventId = bookingId.replace(/-/g, '')
+    const eventId = bookingEventId(bookingId)
     try {
       await calendar.events.insert({ calendarId, requestBody: { ...requestBody, id: eventId } })
     } catch (err) {
@@ -78,9 +83,12 @@ export async function pushGcalEvent(bookingId: string): Promise<boolean> {
 }
 
 /**
- * Deletes a GCal event by its event ID. No-op if calendar is not connected.
+ * Deletes the booking's recorded event, or its deterministic fallback ID.
+ * No-op if calendar is not connected.
  */
-export async function deleteGcalEvent(gcalEventId: string): Promise<boolean> {
+export async function deleteGcalEvent(
+  booking: Pick<Tables<'bookings'>, 'id' | 'gcal_event_id'>
+): Promise<boolean> {
   const client = await getGcalClient()
   if (!client) {
     console.warn('[gcal:push] not connected, skipping delete')
@@ -91,7 +99,10 @@ export async function deleteGcalEvent(gcalEventId: string): Promise<boolean> {
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
 
   try {
-    await calendar.events.delete({ calendarId, eventId: gcalEventId })
+    await calendar.events.delete({
+      calendarId,
+      eventId: booking.gcal_event_id ?? bookingEventId(booking.id),
+    })
   } catch (err) {
     const status = (err as { response?: { status?: number } }).response?.status
     if (status !== 404 && status !== 410) throw err

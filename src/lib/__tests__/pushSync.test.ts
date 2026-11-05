@@ -37,10 +37,17 @@ describe('Calendar retries', () => {
   })
   it.each([404, 410])('treats an already removed event (%s) as success', async (status) => {
     events.delete.mockRejectedValue({ response: { status } })
-    expect(await deleteGcalEvent('event')).toBe(true)
+    expect(await deleteGcalEvent({ id: 'abc-123', gcal_event_id: 'event' })).toBe(true)
   })
   it('does not hide authentication failures', async () => {
     events.delete.mockRejectedValue({ response: { status: 401 } })
-    await expect(deleteGcalEvent('event')).rejects.toEqual({ response: { status: 401 } })
+    await expect(deleteGcalEvent({ id: 'abc-123', gcal_event_id: 'event' })).rejects.toEqual({ response: { status: 401 } })
+  })
+  it.each([
+    ['legacy-google-id', 'legacy-google-id'],
+    [null, 'abc123'],
+  ])('resolves stored or derived identity in the Calendar boundary (%s)', async (storedId, expectedId) => {
+    expect(await deleteGcalEvent({ id: 'abc-123', gcal_event_id: storedId })).toBe(true)
+    expect(events.delete).toHaveBeenCalledWith({ calendarId: 'primary', eventId: expectedId })
   })
 })

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { BookingEvent } from '@/components/admin/BookingsCalendar'
+import type { BookingEvent } from '@/components/admin/BookingsCalendar'
 import { confirmDeposit } from '@/lib/actions/admin/confirmDeposit'
 import { cancelBooking } from '@/lib/actions/admin/cancelBooking'
 import { cancelSeries } from '@/lib/actions/admin/cancelSeries'
@@ -152,7 +152,10 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
     if (result.success) {
       onMutated(result.warning)
     } else {
-      setError(result.error ?? `Failed to cancel series (${result.failed.length} occurrence(s) failed).`)
+      setError([
+        result.error ?? `Failed to cancel series (${result.failed.length} occurrence(s) failed).`,
+        result.warning,
+      ].filter(Boolean).join('\n'))
     }
   }
 
@@ -395,7 +398,7 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
 
           {/* Error — announced to screen readers */}
           {error && (
-            <p id="drawer-error" role="alert" className="text-sm text-red-600 font-sans">
+            <p id="drawer-error" role="alert" className="whitespace-pre-line text-sm text-red-600 font-sans">
               {error}
             </p>
           )}

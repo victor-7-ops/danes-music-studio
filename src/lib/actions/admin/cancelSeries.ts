@@ -24,7 +24,7 @@ export async function cancelSeries(seriesId: string): Promise<CancelSeriesResult
 
   const { data: bookings, error: fetchError } = await supabase
     .from('bookings')
-    .select('id, status')
+    .select('id, status, confirmation_code')
     .eq('series_id', seriesId)
 
   if (fetchError) {
@@ -36,18 +36,23 @@ export async function cancelSeries(seriesId: string): Promise<CancelSeriesResult
 
   let cancelled = 0
   const failed: string[] = []
-  let deliveryWarning = false
+  const deliveryWarnings: string[] = []
 
   for (const booking of bookings) {
     if (booking.status === 'cancelled') continue
     const result = await cancelBooking(booking.id as string)
     if (result.success) {
       cancelled += 1
-      if (result.warning) deliveryWarning = true
+      if (result.warning) deliveryWarnings.push(`${booking.confirmation_code}: ${result.warning}`)
     } else {
       failed.push(booking.id as string)
     }
   }
 
-  return { success: failed.length === 0, cancelled, failed, ...(deliveryWarning ? { warning: 'Some Calendar or email deliveries failed. Open bookings to retry the affected occurrences.' } : {}) }
+  return {
+    success: failed.length === 0,
+    cancelled,
+    failed,
+    ...(deliveryWarnings.length ? { warning: deliveryWarnings.join('\n') } : {}),
+  }
 }

@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
   }
 
   if (booking.status === 'confirmed' || booking.gcal_event_id) {
-    await deleteGcalEvent(booking.gcal_event_id ?? booking.id.replace(/-/g, '')).catch((err: unknown) => {
+    await deleteGcalEvent(booking).catch((err: unknown) => {
       console.error('[gcal:push] self-cancel delete failed', err)
     })
   }

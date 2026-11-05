@@ -65,7 +65,7 @@ describe('cancelSeries', () => {
     expect(result).toEqual({ success: true, cancelled: 2, failed: [] })
     expect(sendCancelEmail).toHaveBeenCalledTimes(1) // only b2 was confirmed
     expect(sendCancelEmail).toHaveBeenCalledWith(b2Full)
-    expect(deleteGcalEvent).toHaveBeenCalledWith('gcal-evt-2')
+    expect(deleteGcalEvent).toHaveBeenCalledWith(b2Full)
   })
 
   it('skips rows already cancelled without invoking cancelBooking for them', async () => {
@@ -101,5 +101,32 @@ describe('cancelSeries', () => {
 
     expect(result).toEqual({ success: false, error: 'Unauthorized', cancelled: 0, failed: [] })
     expect(client.from).not.toHaveBeenCalled()
+  })
+
+  it('preserves the affected reference and both delivery errors alongside a database failure', async () => {
+    const booking = {
+      id: 'b1', status: 'confirmed', confirmation_code: 'DMS-AFFECTED',
+      customer_email: 'test@example.com', customer_name: 'Test', band_name: null,
+      start_at: '2030-08-01T02:00:00Z', gcal_event_id: 'event',
+    }
+    const client = makeMockClient({ bookings: [
+      { data: [{ id: 'b1', status: 'confirmed', confirmation_code: 'DMS-AFFECTED' }, { id: 'b2', status: 'pending', confirmation_code: 'DMS-B' }], error: null },
+      { data: booking, error: null },
+      { data: null, error: null },
+      { data: { ...booking, id: 'b2', status: 'pending' }, error: null },
+      { data: null, error: { message: 'Database unavailable' } },
+    ] })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+    vi.mocked(sendCancelEmail).mockRejectedValueOnce(new Error('Email unavailable'))
+    vi.mocked(deleteGcalEvent).mockRejectedValueOnce(new Error('Calendar unavailable'))
+
+    const result = await cancelSeries('series-1')
+
+    expect(result.success).toBe(false)
+    expect(result.cancelled).toBe(1)
+    expect(result.failed).toEqual(['b2'])
+    expect(result.warning).toContain('DMS-AFFECTED:')
+    expect(result.warning).toContain('Cancellation email failed')
+    expect(result.warning).toContain('Calendar removal failed')
   })
 })

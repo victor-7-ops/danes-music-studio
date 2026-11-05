@@ -36,7 +36,7 @@ describe('retryBookingDelivery', () => {
     booking('cancelled')
     vi.mocked(deleteGcalEvent).mockResolvedValue(true)
     expect(await retryBookingDelivery('id', 'calendar')).toEqual({ success: true })
-    expect(deleteGcalEvent).toHaveBeenCalledWith('event')
+    expect(deleteGcalEvent).toHaveBeenCalledWith(expect.objectContaining({ id: 'id', gcal_event_id: 'event' }))
   })
   it('reports delivery errors without claiming success', async () => {
     booking()

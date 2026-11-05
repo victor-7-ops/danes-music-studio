@@ -54,7 +54,7 @@ describe('cancelBooking', () => {
     expect(bookingsCalls[1].result.update).toHaveBeenCalledWith({ status: 'cancelled' })
 
     expect(sendCancelEmail).toHaveBeenCalledWith(booking)
-    expect(deleteGcalEvent).toHaveBeenCalledWith('gcal-evt-1')
+    expect(deleteGcalEvent).toHaveBeenCalledWith(booking)
   })
 
   it('pending booking cancel is silent: no email, no gcal delete', async () => {
