@@ -27,10 +27,10 @@ describe.skipIf(skipIntegration)('EXCLUDE constraint — bookings_no_overlap', (
 
   afterAll(async () => {
     if (!supabase || insertedIds.length === 0) return
-    // Cleanup: cancel all rows inserted by this test run
+    // Remove only rows inserted by this test run.
     await supabase
       .from('bookings')
-      .update({ status: 'cancelled' })
+      .delete()
       .in('id', insertedIds)
   })
 
