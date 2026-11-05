@@ -49,7 +49,7 @@ export async function confirmDeposit(
 
   if (error) return { success: false, error: error.message }
 
-  void pushGcalEvent(bookingId).catch((err: unknown) => {
+  await pushGcalEvent(bookingId).catch((err: unknown) => {
     console.error('[gcal:push] confirmDeposit failed', err)
   })
 

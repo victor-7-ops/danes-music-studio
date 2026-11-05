@@ -1,7 +1,9 @@
 import { describe, it, expect, vi } from 'vitest'
+vi.mock('@/lib/gcal/pushSync', () => ({ pushGcalEvent: vi.fn().mockResolvedValue(undefined) }))
+import { pushGcalEvent } from '@/lib/gcal/pushSync'
 
 let depositPct = 0.5
-const insertMock = vi.fn(() => Promise.resolve({ error: null }))
+const insertMock = vi.fn((booking: { id: string }) => Promise.resolve({ data: booking, error: null }))
 const singleMock = vi.fn(() =>
   Promise.resolve({ data: { id: 'svc-1', rate_per_hour: 35000, deposit_pct: depositPct }, error: null })
 )
@@ -33,6 +35,19 @@ const baseParams = {
 }
 
 describe('createOnsite deposit calculation', () => {
+  it('syncs the inserted confirmed booking to Google Calendar', async () => {
+    vi.mocked(pushGcalEvent).mockClear()
+    await createOnsite(baseParams)
+    expect(pushGcalEvent).toHaveBeenCalledWith(
+      insertMock.mock.calls.at(-1)?.[0].id
+    )
+  })
+
+  it('keeps unpaid bookings out of Google Calendar', async () => {
+    vi.mocked(pushGcalEvent).mockClear()
+    await createOnsite({ ...baseParams, paymentType: 'unpaid' })
+    expect(pushGcalEvent).not.toHaveBeenCalled()
+  })
   it('uses configured deposit_pct (0.3), not a hardcoded 50%', async () => {
     depositPct = 0.3
     await createOnsite(baseParams)

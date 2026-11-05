@@ -37,7 +37,7 @@ export async function cancelBooking(
   }
 
   if (booking.status === 'confirmed' && booking.gcal_event_id) {
-    void deleteGcalEvent(booking.gcal_event_id as string).catch((err: unknown) => {
+    await deleteGcalEvent(booking.gcal_event_id as string).catch((err: unknown) => {
       console.error('[gcal:push] cancelBooking delete failed', err)
     })
   }

@@ -2,6 +2,8 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { createConfirmationCode } from '@/lib/confirmationCode'
+import { randomUUID } from 'crypto'
+import { pushGcalEvent } from '@/lib/gcal/pushSync'
 
 export type PaymentType = 'unpaid' | 'deposit' | 'full'
 
@@ -65,7 +67,9 @@ export async function createOnsite(
     paymentType === 'full' ? total_amount : paymentType === 'deposit' ? deposit_amount : 0
   const payment_method = paymentType === 'unpaid' ? 'none' : paymentType
 
+  const bookingId = randomUUID()
   const { error: insertError } = await supabase.from('bookings').insert({
+    id: bookingId,
     confirmation_code: code,
     customer_name: customerName.trim(),
     customer_email: customerEmail?.trim() ?? '',
@@ -91,6 +95,12 @@ export async function createOnsite(
       return { success: false, error: 'That time slot is already booked.' }
     }
     return { success: false, error: insertError.message }
+  }
+
+  if (status === 'confirmed') {
+    await pushGcalEvent(bookingId).catch((err: unknown) => {
+      console.error('[gcal:push] createOnsite failed', err)
+    })
   }
 
   return { success: true, code }

@@ -106,7 +106,7 @@ export async function createWalkIn(
   }
 
   if (inserted?.id) {
-    void pushGcalEvent(inserted.id as string).catch((err: unknown) => {
+    await pushGcalEvent(inserted.id as string).catch((err: unknown) => {
       console.error('[gcal:push] createWalkIn failed', err)
     })
   }
