@@ -124,7 +124,7 @@ export default function AdminSidebar() {
         className={[
           'fixed left-0 top-0 h-full z-40 w-60 bg-white border-r border-ink/10 flex flex-col font-sans transition-transform duration-200',
           'md:translate-x-0',
-          isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
+          isOpen ? 'visible translate-x-0' : 'invisible -translate-x-full md:visible md:translate-x-0',
         ].join(' ')}
       >
         {/* Logo / wordmark */}

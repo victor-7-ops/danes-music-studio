@@ -120,8 +120,8 @@ export default function EquipmentPanel({ initialEquipment }: EquipmentPanelProps
       {equipment.length > 0 && (
         <div className="border border-ink/20 divide-y divide-ink/10 mb-4">
           {equipment.map((item) => (
-            <div key={item.id} className="flex items-center justify-between px-3 py-2 gap-3">
-              <div className={`flex-1 font-sans text-sm ${item.active ? 'text-ink' : 'text-muted line-through'}`}>
+            <div key={item.id} className="flex flex-wrap items-center justify-between px-3 py-2 gap-3">
+              <div className={`basis-full sm:basis-0 sm:flex-1 min-w-0 break-words font-sans text-sm ${item.active ? 'text-ink' : 'text-muted line-through'}`}>
                 {item.name}
               </div>
               <div className="font-sans text-sm text-ink tabular-nums">
@@ -141,14 +141,14 @@ export default function EquipmentPanel({ initialEquipment }: EquipmentPanelProps
                       handleUpdateQuantity(item.id, value)
                     }
                   }}
-                  className="w-16 border border-ink/20 bg-bg px-1 py-1 font-sans text-sm text-center focus:outline-none focus:border-ink disabled:opacity-50"
+                  className="w-16 min-h-11 border border-ink/20 bg-bg px-1 py-1 font-sans text-sm text-center focus:outline-none focus:border-ink disabled:opacity-50"
                 />
               </label>
               <button
                 type="button"
                 onClick={() => handleToggleEquipment(item.id, item.active)}
                 disabled={equipLoading}
-                className="font-sans text-xs uppercase tracking-widest text-muted hover:text-ink underline disabled:opacity-50"
+                className="min-h-11 font-sans text-xs uppercase tracking-widest text-muted hover:text-ink underline disabled:opacity-50"
               >
                 {item.active ? 'Disable' : 'Enable'}
               </button>
@@ -156,7 +156,7 @@ export default function EquipmentPanel({ initialEquipment }: EquipmentPanelProps
                 type="button"
                 onClick={() => handleDeleteEquipment(item.id)}
                 disabled={equipLoading}
-                className="font-sans text-xs uppercase tracking-widest text-red-600 hover:opacity-70 underline disabled:opacity-50"
+                className="min-h-11 font-sans text-xs uppercase tracking-widest text-red-600 hover:opacity-70 underline disabled:opacity-50"
               >
                 Delete
               </button>
