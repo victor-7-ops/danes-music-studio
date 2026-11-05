@@ -1,11 +1,11 @@
 export const runtime = 'nodejs'
 
 import { stopWatchChannel, registerWatchChannel, getGcalClient } from '@/lib/gcal/client'
-import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
 
 export async function POST(request: Request) {
   const secret = request.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return new Response('Forbidden', { status: 403 })
   }
 
@@ -43,10 +43,10 @@ export async function POST(request: Request) {
       verificationToken: process.env.GCAL_WEBHOOK_TOKEN!,
     })
 
-    const supabase = await createClient()
+    const supabase = createServiceClient()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const db = supabase as unknown as { from(table: string): any }
-    await db
+    const { error } = await db
       .from('google_tokens')
       .update({
         watch_channel_id: channelId,
@@ -54,7 +54,8 @@ export async function POST(request: Request) {
         watch_expires_at: new Date(Number(expiration)).toISOString(),
         updated_at: new Date().toISOString(),
       })
-      .neq('id', '00000000-0000-0000-0000-000000000000')
+      .eq('id', googleTokensRow.id)
+    if (error) throw error
 
     return Response.json({
       ok: true,

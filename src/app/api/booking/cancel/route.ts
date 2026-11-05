@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData()
   const token = formData.get('token')
   if (typeof token !== 'string' || !token) {
-    return NextResponse.redirect(new URL('/book?error=invalid_link', req.url))
+    return NextResponse.redirect(new URL('/book?error=invalid_link', req.url), 303)
   }
 
   const supabase = createServiceClient()
@@ -46,34 +46,35 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (!booking) {
-    return NextResponse.redirect(new URL('/book?error=invalid_link', req.url))
+    return NextResponse.redirect(new URL('/book?error=invalid_link', req.url), 303)
   }
 
   if (booking.status === 'cancelled') {
     return NextResponse.redirect(
-      new URL(`/booking/${booking.confirmation_code}?token=${token}&error=already_cancelled`, req.url)
+      new URL(`/booking/${booking.confirmation_code}?token=${token}&error=already_cancelled`, req.url), 303
     )
   }
 
   if (new Date(booking.start_at) <= new Date()) {
     return NextResponse.redirect(
-      new URL(`/booking/${booking.confirmation_code}?token=${token}&error=past_booking`, req.url)
+      new URL(`/booking/${booking.confirmation_code}?token=${token}&error=past_booking`, req.url), 303
     )
   }
 
-  await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id)
+  const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id)
+  if (error) return NextResponse.json({ error: 'Unable to cancel booking. Please retry.' }, { status: 503 })
 
   if (booking.status === 'confirmed') {
-    sendCancelEmail(booking).catch((err) => console.error('[email:cancel]', err))
+    await sendCancelEmail(booking).catch((err) => console.error('[email:cancel]', err))
   }
 
-  if (booking.gcal_event_id) {
-    void deleteGcalEvent(booking.gcal_event_id).catch((err: unknown) => {
+  if (booking.status === 'confirmed' || booking.gcal_event_id) {
+    await deleteGcalEvent(booking.gcal_event_id ?? booking.id.replace(/-/g, '')).catch((err: unknown) => {
       console.error('[gcal:push] self-cancel delete failed', err)
     })
   }
 
   return NextResponse.redirect(
-    new URL(`/booking/${booking.confirmation_code}?token=${token}&cancelled=1`, req.url)
+    new URL(`/booking/${booking.confirmation_code}?token=${token}&cancelled=1`, req.url), 303
   )
 }

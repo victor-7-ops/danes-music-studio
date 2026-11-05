@@ -11,7 +11,7 @@ import { createClient } from '@/lib/supabase/client'
 interface BookingDrawerProps {
   booking: BookingEvent
   onClose: () => void
-  onMutated: () => void
+  onMutated: (warning?: string) => void
 }
 
 function formatManilaDate(date: Date): string {
@@ -125,7 +125,7 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
     const result = await confirmDeposit(booking.id, Math.round(amountReceived * 100))
     setLoading(false)
     if (result.success) {
-      onMutated()
+      onMutated(result.warning)
     } else {
       setError(result.error ?? 'Failed to confirm deposit.')
     }
@@ -137,7 +137,7 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
     const result = await cancelBooking(booking.id)
     setLoading(false)
     if (result.success) {
-      onMutated()
+      onMutated(result.warning)
     } else {
       setError(result.error ?? 'Failed to cancel booking.')
     }
@@ -150,7 +150,7 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
     const result = await cancelSeries(booking.series_id)
     setLoading(false)
     if (result.success) {
-      onMutated()
+      onMutated(result.warning)
     } else {
       setError(result.error ?? `Failed to cancel series (${result.failed.length} occurrence(s) failed).`)
     }

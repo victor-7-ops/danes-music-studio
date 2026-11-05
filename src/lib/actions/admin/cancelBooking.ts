@@ -6,7 +6,7 @@ import { deleteGcalEvent } from '@/lib/gcal/pushSync'
 
 export async function cancelBooking(
   bookingId: string
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; warning?: string }> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -29,18 +29,22 @@ export async function cancelBooking(
 
   if (updateError) return { success: false, error: updateError.message }
 
+  const warnings: string[] = []
   // D-07: email only for confirmed cancels; pending cancels are silent
   if (booking.status === 'confirmed') {
-    sendCancelEmail(booking).catch((err) =>
+    await sendCancelEmail(booking).catch((err) => {
       console.error('[email:cancel]', err)
-    )
-  }
-
-  if (booking.status === 'confirmed' && booking.gcal_event_id) {
-    await deleteGcalEvent(booking.gcal_event_id as string).catch((err: unknown) => {
-      console.error('[gcal:push] cancelBooking delete failed', err)
+      warnings.push('Cancellation email failed. Retry from the booking actions.')
     })
   }
 
-  return { success: true }
+  if (booking.status === 'confirmed') {
+    const removed = await deleteGcalEvent(booking.gcal_event_id ?? booking.id.replace(/-/g, '')).catch((err: unknown) => {
+      console.error('[gcal:push] cancelBooking delete failed', err)
+      warnings.push('Calendar removal failed. Retry from the booking actions.')
+    })
+    if (removed === false) warnings.push('Google Calendar is not connected. Reconnect in Settings, then retry removal.')
+  }
+
+  return { success: true, ...(warnings.length ? { warning: warnings.join(' ') } : {}) }
 }

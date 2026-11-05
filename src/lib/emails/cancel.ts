@@ -28,5 +28,6 @@ export async function sendCancelEmail(booking: CancelBooking): Promise<void> {
   if (error) {
     // T-04-02: log error object only — never log customer_email or booking fields
     console.error('[email] cancel send failed:', error)
+    throw new Error('Cancellation email delivery failed')
   }
 }

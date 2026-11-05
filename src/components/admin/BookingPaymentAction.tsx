@@ -31,6 +31,7 @@ export function BookingPaymentAction({
     startTransition(async () => {
       const result = await confirmDeposit(bookingId, amount, type)
       if (result.success) {
+        if (result.warning) setError(result.warning)
         router.refresh()
       } else {
         setError(result.error ?? 'Failed to confirm payment.')
@@ -47,7 +48,7 @@ export function BookingPaymentAction({
   // the remaining balance as received once the customer pays on the day.
   const showBalanceButton = status === 'confirmed' && paymentMethod === 'deposit' && amountPaid < totalAmount
 
-  if (!showDepositButton && !showFullButton && !showBalanceButton) return null
+  if (!showDepositButton && !showFullButton && !showBalanceButton && !error) return null
 
   return (
     <div className="flex flex-col gap-1 items-start">

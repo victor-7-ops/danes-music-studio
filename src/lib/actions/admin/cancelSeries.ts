@@ -6,6 +6,7 @@ import { cancelBooking } from '@/lib/actions/admin/cancelBooking'
 export interface CancelSeriesResult {
   success: boolean
   error?: string
+  warning?: string
   cancelled: number
   failed: string[] // booking ids that failed to cancel
 }
@@ -35,16 +36,18 @@ export async function cancelSeries(seriesId: string): Promise<CancelSeriesResult
 
   let cancelled = 0
   const failed: string[] = []
+  let deliveryWarning = false
 
   for (const booking of bookings) {
     if (booking.status === 'cancelled') continue
     const result = await cancelBooking(booking.id as string)
     if (result.success) {
       cancelled += 1
+      if (result.warning) deliveryWarning = true
     } else {
       failed.push(booking.id as string)
     }
   }
 
-  return { success: failed.length === 0, cancelled, failed }
+  return { success: failed.length === 0, cancelled, failed, ...(deliveryWarning ? { warning: 'Some Calendar or email deliveries failed. Open bookings to retry the affected occurrences.' } : {}) }
 }

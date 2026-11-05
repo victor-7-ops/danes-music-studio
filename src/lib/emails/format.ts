@@ -2,6 +2,10 @@
 // Pure formatting utilities for email templates. No external dependencies.
 // Server-only — imported only from server-side email modules.
 
+export function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]!))
+}
+
 /**
  * Format a centavos integer as a Philippine Peso string.
  * Shows decimals only when there are non-zero centavos (CLAUDE.md invariant 3).

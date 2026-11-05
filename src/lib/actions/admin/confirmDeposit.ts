@@ -9,7 +9,7 @@ export async function confirmDeposit(
   bookingId: string,
   amountReceived: number,
   paymentType?: 'full' | 'deposit'
-): Promise<{ success: boolean; error?: string }> {
+): Promise<{ success: boolean; error?: string; warning?: string }> {
   const supabase = await createClient()
   const {
     data: { user },
@@ -49,13 +49,17 @@ export async function confirmDeposit(
 
   if (error) return { success: false, error: error.message }
 
-  await pushGcalEvent(bookingId).catch((err: unknown) => {
+  const warnings: string[] = []
+  const synced = await pushGcalEvent(bookingId).catch((err: unknown) => {
     console.error('[gcal:push] confirmDeposit failed', err)
+    warnings.push('Calendar sync failed. Retry from the booking actions.')
   })
+  if (synced === false) warnings.push('Google Calendar is not connected. Connect it in Settings, then retry.')
 
   if (updated) {
-    sendConfirmEmail(updated).catch((err: unknown) => {
+    await sendConfirmEmail(updated).catch((err: unknown) => {
       console.error('[email] confirmDeposit confirm failed', err)
+      warnings.push('Confirmation email failed. Retry from the booking actions.')
     })
 
     void sendTelegramMessage(
@@ -70,5 +74,5 @@ export async function confirmDeposit(
     })
   }
 
-  return { success: true }
+  return { success: true, ...(warnings.length ? { warning: warnings.join(' ') } : {}) }
 }

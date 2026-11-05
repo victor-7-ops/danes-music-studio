@@ -10,9 +10,21 @@ vi.mock('@/lib/telegram', () => ({
 
 import { createClient } from '@/lib/supabase/server'
 import { confirmDeposit } from '@/lib/actions/admin/confirmDeposit'
+import { pushGcalEvent } from '@/lib/gcal/pushSync'
 import { makeMockClient } from './supabaseMock'
 
 describe('confirmDeposit', () => {
+  it('preserves the confirmed payment and reports a failed Calendar delivery', async () => {
+    const client = makeMockClient({ bookings: [
+      { data: { total_amount: 35000 }, error: null },
+      { data: null, error: null },
+    ] })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+    vi.mocked(pushGcalEvent).mockRejectedValueOnce(new Error('Calendar unavailable'))
+    const result = await confirmDeposit('booking-1', 35000)
+    expect(result.success).toBe(true)
+    expect(result.warning).toContain('Calendar sync failed')
+  })
   beforeEach(() => {
     vi.mocked(createClient).mockReset()
   })

@@ -1,7 +1,7 @@
 // src/lib/emails/templates/confirm.html.ts
 // Booking confirmation email template. Inline styles only — email clients strip external CSS.
 
-import { formatPHP, formatManila } from '../format'
+import { escapeHtml, formatPHP, formatManila } from '../format'
 
 export function buildConfirmHtml(booking: {
   confirmation_code: string
@@ -13,7 +13,7 @@ export function buildConfirmHtml(booking: {
   amount_paid: number
   cancel_token?: string
 }): string {
-  const displayName = booking.band_name ?? booking.customer_name
+  const displayName = escapeHtml(booking.band_name ?? booking.customer_name)
   const dateTime =
     formatManila(booking.start_at, 'datetime') +
     ' – ' +
@@ -55,7 +55,7 @@ export function buildConfirmHtml(booking: {
 
           <!-- Confirmation code -->
           <tr>
-            <td style="font-size:36px;font-weight:700;color:#111111;padding-bottom:8px;">
+            <td style="font-size:18px;font-family:monospace;word-break:break-all;font-weight:700;color:#111111;padding-bottom:16px;">
               ${booking.confirmation_code}
             </td>
           </tr>

@@ -4,7 +4,7 @@ import { runPullSync } from '@/lib/gcal/pullSync'
 
 export async function POST(request: Request) {
   const secret = request.headers.get('x-cron-secret')
-  if (secret !== process.env.CRON_SECRET) {
+  if (!process.env.CRON_SECRET || secret !== process.env.CRON_SECRET) {
     return new Response('Forbidden', { status: 403 })
   }
 

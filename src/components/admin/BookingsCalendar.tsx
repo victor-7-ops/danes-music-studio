@@ -77,6 +77,7 @@ export function BookingsCalendar({
 }) {
   const router = useRouter()
   const [selected, setSelected] = useState<BookingEvent | null>(null)
+  const [warning, setWarning] = useState<string | null>(null)
   const [view, setView] = useState<'week' | 'month' | 'day'>('week')
   const [date, setDate] = useState(() => (from ? new Date(`${from}T00:00:00`) : new Date()))
 
@@ -93,6 +94,7 @@ export function BookingsCalendar({
 
   return (
     <div className="h-full">
+      {warning && <p role="alert" className="mb-4 rounded-lg border border-ink/20 p-3 text-sm">{warning} <a className="underline" href="/admin/bookings">Open bookings</a></p>}
       <Calendar
         localizer={localizer}
         events={bookings}
@@ -114,7 +116,8 @@ export function BookingsCalendar({
         <BookingDrawer
           booking={selected}
           onClose={() => setSelected(null)}
-          onMutated={() => {
+          onMutated={(message) => {
+            setWarning(message ?? null)
             setSelected(null)
             router.refresh()
           }}

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { formatPHP } from '@/lib/emails/format'
 import { BookingPaymentAction } from '@/components/admin/BookingPaymentAction'
+import { BookingDeliveryActions } from '@/components/admin/BookingDeliveryActions'
 
 const PAYMENT_LABEL: Record<string, string> = {
   full: 'Full',
@@ -229,6 +230,7 @@ export default async function BookingsPage({
                         amountPaid={b.amount_paid}
                         totalAmount={b.total_amount}
                       />
+                      <BookingDeliveryActions bookingId={b.id} status={b.status} />
                     </td>
                   </tr>
                 )

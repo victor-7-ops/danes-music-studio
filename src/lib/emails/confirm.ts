@@ -31,5 +31,6 @@ export async function sendConfirmEmail(booking: ConfirmBooking): Promise<void> {
   if (error) {
     // T-04-02: log error object only — never log customer_email or booking fields
     console.error('[email] confirm send failed:', error)
+    throw new Error('Confirmation email delivery failed')
   }
 }
