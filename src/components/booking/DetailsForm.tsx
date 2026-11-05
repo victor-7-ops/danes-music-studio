@@ -168,7 +168,7 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
   return (
     <div className="max-w-lg mx-auto">
       <p className="font-sans text-xs font-medium tracking-widest uppercase text-muted mb-2">
-        Step 3 of 4
+        Step 4 of 5
       </p>
       <h1 className="font-display text-5xl uppercase leading-none mb-8">
         Your Details

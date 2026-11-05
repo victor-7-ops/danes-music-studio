@@ -51,7 +51,7 @@ export default function SlotGridStep({ date, service, rateCents, depositPct, slo
     <div className="min-h-screen bg-bg">
       <div className="max-w-lg mx-auto px-6 py-16">
         <p className="font-sans text-xs font-medium tracking-widest uppercase text-muted mb-2">
-          Step 2 of 4
+          Step 3 of 5
         </p>
         <h1 className="font-display text-5xl font-extrabold uppercase leading-none mb-2">
           Pick Your Hours

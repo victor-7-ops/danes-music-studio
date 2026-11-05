@@ -1,11 +1,9 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { createBrowserClient } from '@supabase/ssr'
 
 export default function LoginPage() {
-  const router = useRouter()
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
@@ -29,7 +27,7 @@ export default function LoginPage() {
       setError(authError.message)
       setLoading(false)
     } else {
-      router.push('/admin')
+      window.location.assign('/admin')
     }
   }
 

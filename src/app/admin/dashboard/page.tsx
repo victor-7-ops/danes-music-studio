@@ -8,6 +8,7 @@ import { StatCard } from '@/components/admin/StatCard'
 import { RevenueTrendChart } from '@/components/admin/RevenueTrendChart'
 import { SourceBarChart } from '@/components/admin/SourceBarChart'
 import { getPreviousPeriod } from '@/lib/dashboardPeriod'
+import Link from 'next/link'
 
 interface DashboardStats {
   collected: number
@@ -62,9 +63,12 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   const params = await searchParams
 
   // Default to current month
-  const now = new Date()
-  const defaultFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-  const defaultTo = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  const studioDate = new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Manila' })
+  const today = new Date(`${studioDate}T00:00:00Z`)
+  const year = today.getUTCFullYear()
+  const month = today.getUTCMonth()
+  const defaultFrom = `${studioDate.slice(0, 7)}-01`
+  const defaultTo = new Date(Date.UTC(year, month + 1, 0))
     .toISOString()
     .split('T')[0]
 
@@ -277,71 +281,48 @@ export default async function DashboardPage({ searchParams }: PageProps) {
   }
 
   // Quick-link date helpers (computed server-side for URL generation)
-  const today = new Date()
   const last7From = new Date(today)
-  last7From.setDate(today.getDate() - 6)
+  last7From.setUTCDate(today.getUTCDate() - 6)
   const last30From = new Date(today)
-  last30From.setDate(today.getDate() - 29)
+  last30From.setUTCDate(today.getUTCDate() - 29)
 
   const fmt = (d: Date) => d.toISOString().split('T')[0]
 
-  const thisMonthFrom = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-01`
-  const thisMonthTo = new Date(today.getFullYear(), today.getMonth() + 1, 0)
-    .toISOString()
-    .split('T')[0]
-
-  // N-month quick links: from the first day of (N-1) months ago through the
-  // end of the current month.
-  function monthsRangeHref(n: number): string {
-    const start = new Date(today.getFullYear(), today.getMonth() - (n - 1), 1)
-    const startStr = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-01`
-    return `/admin/dashboard?from=${startStr}&to=${thisMonthTo}`
-  }
+  const thisMonthFrom = defaultFrom
+  const thisMonthTo = defaultTo
 
   return (
-    <div className="p-6 max-w-4xl space-y-8">
-      <h1 className="font-display text-3xl uppercase tracking-tight text-ink">
-        Dashboard
-      </h1>
+    <div className="mx-auto max-w-7xl space-y-7 p-4 sm:p-6 lg:p-8">
+      <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="mb-1 text-xs font-medium uppercase tracking-[0.16em] text-muted">Studio overview</p>
+          <h1 className="font-display text-3xl tracking-tight text-ink">Dashboard</h1>
+          <p className="mt-1 text-sm text-muted">A clear view of bookings, revenue and studio activity.</p></div>
+        <div className="flex gap-2">
+          <Link href="/admin/walk-in" className="rounded-lg border border-ink/15 bg-white px-4 py-2.5 text-sm font-medium hover:bg-ink/5">Walk-in</Link>
+          <Link href="/admin/new-booking" className="rounded-lg bg-ink px-4 py-2.5 text-sm font-medium text-bg hover:opacity-85">+ New booking</Link>
+        </div>
+      </header>
 
       {/* Date range filter */}
-      <section className="space-y-3">
+      <section className="space-y-3 rounded-xl border border-ink/10 bg-white p-4 sm:p-5">
         <div className="flex flex-wrap gap-2 text-sm font-sans">
           <a
             href={`/admin/dashboard?from=${thisMonthFrom}&to=${thisMonthTo}`}
-            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
+          className="flex min-h-10 items-center rounded-lg border border-ink/15 px-3 text-ink hover:bg-ink/5 transition-colors"
           >
             This month
           </a>
           <a
             href={`/admin/dashboard?from=${fmt(last7From)}&to=${fmt(today)}`}
-            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
+            className="flex min-h-10 items-center rounded-lg border border-ink/15 px-3 text-ink hover:bg-ink/5 transition-colors"
           >
             Last 7 days
           </a>
           <a
             href={`/admin/dashboard?from=${fmt(last30From)}&to=${fmt(today)}`}
-            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
+            className="flex min-h-10 items-center rounded-lg border border-ink/15 px-3 text-ink hover:bg-ink/5 transition-colors"
           >
             Last 30 days
-          </a>
-          <a
-            href={monthsRangeHref(1)}
-            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
-          >
-            1 month
-          </a>
-          <a
-            href={monthsRangeHref(2)}
-            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
-          >
-            2 months
-          </a>
-          <a
-            href={monthsRangeHref(3)}
-            className="border border-ink/20 px-3 py-1 min-h-11 flex items-center text-ink hover:bg-ink hover:text-bg transition-colors"
-          >
-            3 months
           </a>
         </div>
 

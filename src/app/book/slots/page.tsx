@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import Link from 'next/link'
 import SlotGridStep from '@/components/booking/SlotGridStep'
 import { createClient } from '@/lib/supabase/server'
 import { SERVICES, isServiceSlug } from '@/lib/services'
@@ -32,13 +33,22 @@ export default async function SlotsPage({ searchParams }: PageProps) {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000'
-  const res = await fetch(`${baseUrl}/api/availability?date=${date}`, {
+  const res = await fetch(`${baseUrl}/api/availability?date=${encodeURIComponent(date)}`, {
     cache: 'no-store',
-  })
+  }).catch(() => null)
 
-  const slots: Array<{ startAt: string; endAt: string }> = res.ok
-    ? await res.json()
-    : []
+  if (!res?.ok) {
+    return (
+      <main className="mx-auto max-w-lg px-6 py-16">
+        <h1 className="font-display text-3xl uppercase">Hours unavailable</h1>
+        <p className="mt-3 text-muted">We couldn’t load the studio’s available hours. Please try again.</p>
+        <a className="mt-6 inline-block underline" href={`/book/slots?${new URLSearchParams({ date, service })}`}>Try again</a>
+        <Link className="ml-6 inline-block underline" href="/book">Choose another date</Link>
+      </main>
+    )
+  }
+
+  const slots: Array<{ startAt: string; endAt: string }> = await res.json()
 
   const opening = specialHours?.open_time ?? settings?.operating_open ?? '09:00'
   const closing = specialHours?.close_time ?? settings?.operating_close ?? '22:00'

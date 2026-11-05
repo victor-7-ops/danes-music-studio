@@ -103,16 +103,13 @@ export default function AdminSidebar() {
 
   return (
     <>
-      {/* Mobile hamburger — 44×44px touch target */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-3 left-3 z-50 md:hidden w-11 h-11 flex flex-col items-center justify-center gap-1.5 bg-bg border border-ink/15"
-        aria-label="Toggle navigation"
-      >
-        <span className="block w-5 h-0.5 bg-ink" />
-        <span className="block w-5 h-0.5 bg-ink" />
-        <span className="block w-5 h-0.5 bg-ink" />
-      </button>
+      <header className="fixed inset-x-0 top-0 z-30 flex h-14 items-center justify-between border-b border-ink/10 bg-[#f5f4f0] px-4 md:hidden">
+        <button onClick={() => setIsOpen(!isOpen)} className="flex h-11 w-11 items-center justify-center rounded-lg hover:bg-ink/5" aria-label={isOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={isOpen}>
+          <span className="text-xl" aria-hidden="true">{isOpen ? '×' : '☰'}</span>
+        </button>
+        <span className="font-display text-sm uppercase tracking-[0.2em]">DANES <span className="font-sans text-xs normal-case tracking-normal text-muted">Studio</span></span>
+        <Link href="/admin/new-booking" className="rounded-lg bg-ink px-3 py-2 text-xs font-medium text-bg">New booking</Link>
+      </header>
 
       {/* Mobile overlay */}
       {isOpen && (
@@ -125,18 +122,18 @@ export default function AdminSidebar() {
       {/* Sidebar */}
       <aside
         className={[
-          'fixed left-0 top-0 h-full z-40 w-56 bg-bg border-r border-ink/10 flex flex-col font-sans transition-transform duration-200',
+          'fixed left-0 top-0 h-full z-40 w-60 bg-white border-r border-ink/10 flex flex-col font-sans transition-transform duration-200',
           'md:translate-x-0',
           isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0',
         ].join(' ')}
       >
         {/* Logo / wordmark */}
-        <div className="px-6 py-5 border-b border-ink/10">
-          <span className="font-display text-xl uppercase tracking-widest text-ink">
+        <div className="px-6 py-6 border-b border-ink/10">
+          <span className="font-display text-xl uppercase tracking-[0.18em] text-ink">
             DANES
           </span>
           <span className="block font-sans text-[10px] text-muted uppercase tracking-[0.2em] mt-0.5">
-            Admin
+            STUDIO OPERATIONS
           </span>
         </div>
 
@@ -157,10 +154,10 @@ export default function AdminSidebar() {
                     href={link.href}
                     onClick={() => setIsOpen(false)}
                     className={[
-                      'flex items-center gap-3 px-6 py-2.5 min-h-11 text-sm uppercase tracking-widest transition-colors',
+                      'flex items-center gap-3 mx-3 rounded-lg px-3 py-2.5 min-h-11 text-sm transition-colors',
                       isActive
-                        ? 'bg-ink text-bg'
-                        : 'text-ink hover:bg-ink/5',
+                        ? 'bg-[#eeece6] font-medium text-ink'
+                        : 'text-muted hover:bg-ink/5 hover:text-ink',
                     ].join(' ')}
                     aria-current={isActive ? 'page' : undefined}
                   >
