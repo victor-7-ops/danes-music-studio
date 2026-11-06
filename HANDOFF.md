@@ -47,6 +47,9 @@ The maintenance/special-hours trigger was repaired in `20261105134109_harden_dat
 
 ## Verification evidence
 
+- November 6 fresh deployed bookings QA: 21 targeted tests passed across BookingDeliveryActions, BookingDrawer, retryBookingDelivery, confirmDeposit, and customerCancellation. Live pending and date-range filters returned the expected empty state; clearing restored all three test records and reset the controls. Keyboard Enter opened the recovery disclosure, and Calendar retry on a cancelled TEST ONLY record returned `Calendar updated.`. Production layouts at 375px, 768px, and 1440px had no page-level horizontal overflow; no browser console warnings/errors were captured. Temporary viewport overrides were reset. No new booking, payment, or email-send cycle was performed in this pass.
+
+
 - November 5: 31 targeted tests passed for the latest application change, including mixed cancellation outcomes, drawer warning display, legacy/fallback Calendar identity, customer cancellation/rescheduling, and retry handling. Lint and TypeScript passed. Vercel production build passed.
 - November 6: both live Retry Calendar removal checks returned `Calendar updated.` on cancelled TEST ONLY bookings: one without a saved event ID and one with a saved legacy event ID. These checks exercise idempotent recovery of already removed events, not a new booking's initial event creation.
 - Earlier: three live Supabase integration tests passed, covering atomic weekly reservations, rollback on conflict, and simultaneous reservation contention. `supabase/tests/schedule_guards.sql` passed with all writes rolled back.
