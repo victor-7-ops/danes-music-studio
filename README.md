@@ -1,5 +1,7 @@
 # Danes Music Studio — Booking App
 
+For current implementation status, deployment evidence, pending work, and project decisions, start with [HANDOFF.md](HANDOFF.md). Keep that handoff updated when work changes; [CLAUDE.md](CLAUDE.md) contains the pickup and continuity rules.
+
 ## What this is
 
 Rehearsal room booking system for Danes Music Studio, Pardo, Cebu City. Customers book online, then pay a deposit by scanning a GCash QR code or via bank transfer and uploading a screenshot as proof of payment. Once admin verifies the payment in `/admin`, the booking is confirmed and a confirmation email is sent. Rate: ₱350/hr, available 9AM–10PM.
@@ -24,8 +26,8 @@ Next.js 14 · Supabase · Resend · Vercel
 ### 2. Clone and install
 
 ```bash
-git clone https://github.com/<your-org>/danes.git
-cd danes
+git clone https://github.com/victor-7-ops/danes-music-studio.git
+cd danes-music-studio
 pnpm install
 ```
 
@@ -42,7 +44,7 @@ Required for local dev:
 | Variable | Where to get it |
 |----------|-----------------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Dashboard → Project Settings → API → Project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Dashboard → Project Settings → API → anon/public key |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Supabase Dashboard → API keys → publishable key |
 | `NEXT_PUBLIC_URL` | `http://localhost:3000` for local dev |
 | `RESEND_API_KEY` | Resend Dashboard → API Keys |
 | `RESEND_FROM_EMAIL` | Verified sender address in Resend (e.g. `noreply@yourdomain.com`) |
@@ -105,7 +107,7 @@ Vercel Dashboard → Project → **Settings** → **Environment Variables**. Add
 | Variable | Value |
 |----------|-------|
 | `NEXT_PUBLIC_SUPABASE_URL` | (from Supabase Dashboard → Project Settings → API) |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | (anon/public key from Supabase Dashboard → Project Settings → API) |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | (publishable key from Supabase Dashboard → API keys) |
 | `NEXT_PUBLIC_URL` | `https://<project>.vercel.app` |
 | `RESEND_API_KEY` | (from Resend Dashboard → API Keys) |
 | `RESEND_FROM_EMAIL` | (verified sender address in Resend) |
@@ -161,7 +163,7 @@ Before deploying the access-control migration, inspect live table grants, RLS po
 | Variable | Required in | Notes |
 |----------|-------------|-------|
 | `NEXT_PUBLIC_SUPABASE_URL` | Local + Vercel | Project URL from Supabase |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Local + Vercel | anon/public key — **not ANON_KEY** |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Local + Vercel | Public publishable key; use this environment variable name |
 | `NEXT_PUBLIC_URL` | Local + Vercel | Full origin URL including protocol |
 | `RESEND_API_KEY` | Local + Vercel | From Resend dashboard |
 | `RESEND_FROM_EMAIL` | Local + Vercel | Verified sender domain in Resend |
