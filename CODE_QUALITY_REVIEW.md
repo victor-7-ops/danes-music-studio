@@ -1,5 +1,23 @@
 # Code quality review
 
+## Standalone follow-up — November 6, 2026
+
+Scope: `50160e6..0197888`, covering the two previous fixes and responsive bookings redesign, with current implementations, all four Calendar deletion callers, payment-action integration, and regression tests inspected. Documentation changes are included only for consistency. This is a scoped maintainability review, not a whole-system security audit.
+
+Verdict: no new actionable maintainability findings in this diff. The previous two P2 findings are resolved. Calendar deletion now owns legacy/fallback event identity in the Calendar module, and the series action retains affected references and delivery messages through mixed-outcome drawer feedback.
+
+The redesign keeps querying on the server and recovery interactions in the existing client component. Native disclosure and GET filters avoid extra state machinery; the filter key resets uncontrolled fields after client navigation. Money formatting and payment confirmation reuse existing code. No additional abstraction or dependency is warranted for this scope.
+
+No changed source file exceeds 1,000 lines. The largest is `BookingDrawer.tsx` at 409 lines; the bookings page is 263 lines. Existing casts in Calendar event creation predate this diff and are not introduced by the identity fix.
+
+Validation: 34 targeted regression tests passed across seven files: booking cancellation, series cancellation, customer cancellation/rescheduling, delivery retry, Calendar synchronization, drawer feedback, and recovery controls. Lint and TypeScript were not rerun because this task made documentation-only changes.
+
+This review did not change application code, production data, Google authentication, or deployment settings. Live provider failures were not induced. The November 6 browser QA is recorded in `HANDOFF.md`; it is separate evidence, not a fresh full end-to-end run during this review.
+
+---
+
+## Historical review
+
 Date: November 5, 2026
 
 Scope: `0befe64..50160e6` (33 changed files). Reviewed the implementation, its callers, database migrations, and regression tests. This is a maintainability review of the recent changes, not a new whole-system security audit.
