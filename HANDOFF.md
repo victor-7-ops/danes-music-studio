@@ -30,6 +30,14 @@ This is the current pickup note. It replaces the old Phase 1 checklist and refer
 
 ## Most recent review and fixes
 
+### Bookings UI follow-up (November 6)
+
+The bookings page now uses responsive cards instead of the wide eleven-column table. Each card retains the full reference, customer/band, Manila date/time, status, source, payment method, total, paid amount, required deposit, and balance. Wide screens use two columns; phones use one column without sideways scrolling. Existing payment actions remain available.
+
+Calendar/email recovery actions are inside a native `Calendar & email` disclosure. Controls have 44px minimum hit areas, specific loading feedback, and distinct success/error announcements. Filters retain their GET/query behavior, reset correctly after client-side clearing, and have separate filtered-empty and database-error states. No database or payment rules changed.
+
+Local browser checks covered 375px, 768px, and 1440px widths, applying/clearing the pending filter, opening the recovery disclosure, and recovering from an invalid status filter. Ten targeted tests passed across three files, including unavailable pending recovery, server failure feedback, successful email feedback, existing retry authorization, and mixed-outcome drawer feedback. Lint and TypeScript passed. Production verification of this UI follow-up is pending deployment.
+
 `CODE_QUALITY_REVIEW.md` records a review of `0befe64..50160e6`. Both P2 findings were addressed in `80b96e2`:
 
 1. Calendar event identity is resolved only in `src/lib/gcal/pushSync.ts`. `deleteGcalEvent` now accepts a booking with `id` and `gcal_event_id`; all four callers pass that booking. Stored legacy IDs and deterministic fallback IDs remain supported, as do repeated-delete 404/410 responses.
