@@ -24,6 +24,7 @@ vi.mock('@/lib/supabase/server', () => ({
 }))
 
 import { createOnsite } from '../actions/admin/createOnsite'
+import { createWalkIn } from '../actions/admin/createWalkIn'
 
 const baseParams = {
   date: '2026-01-01',
@@ -66,5 +67,23 @@ describe('createOnsite deposit calculation', () => {
     expect(insertMock).toHaveBeenCalledWith(
       expect.objectContaining({ deposit_amount: expectedDeposit })
     )
+  })
+})
+
+// Both admin forms use whole-hour slots; reject minute values before pricing.
+describe.each([
+  ['onsite', createOnsite],
+  ['walk-in', createWalkIn],
+] as const)('%s time validation', (_name, create) => {
+  it.each([
+    ['10:30', '12:00'],
+    ['10:00', '12:30'],
+    ['25:00', '26:00'],
+  ])('rejects %s–%s before querying or charging', async (start, end) => {
+    fromMock.mockClear()
+    expect(await create({ ...baseParams, start, end })).toEqual({
+      success: false, error: 'Invalid parameters.',
+    })
+    expect(fromMock).not.toHaveBeenCalled()
   })
 })

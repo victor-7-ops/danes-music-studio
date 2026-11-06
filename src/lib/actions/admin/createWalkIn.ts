@@ -27,8 +27,8 @@ export async function createWalkIn(
     params.service && isServiceSlug(params.service) ? params.service : 'rehearsal'
 
   const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date)
-  const startOk = /^\d{2}:\d{2}$/.test(start)
-  const endOk = /^\d{2}:\d{2}$/.test(end)
+  const startOk = /^(?:[01]\d|2[0-3]):00$/.test(start)
+  const endOk = /^(?:[01]\d|2[0-3]|24):00$/.test(end)
   const startHour = parseInt(start.split(':')[0])
   const endHour = parseInt(end.split(':')[0])
   const hoursOk = endHour > startHour
