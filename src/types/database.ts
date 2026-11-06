@@ -426,6 +426,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      update_studio_settings: {
+        Args: { p_settings: Json }
+        Returns: undefined
+      }
+      replace_google_connection: {
+        Args: { p_encrypted_token: string; p_google_email: string }
+        Returns: undefined
+      }
       create_customer_reservations: {
         Args: { p_request: Json }
         Returns: Json

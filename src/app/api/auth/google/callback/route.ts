@@ -46,18 +46,11 @@ export async function GET(request: Request) {
 
     const encrypted = encryptToken(tokens.refresh_token)
 
-    // Delete existing rows (single-row table, no sentinel needed)
-    const { error: deleteError } = await supabase.from('google_tokens').delete().neq('id', '00000000-0000-0000-0000-000000000000')
-    if (deleteError) throw deleteError
-
-    // Insert fresh row
-    const { error: insertError } = await supabase.from('google_tokens').insert({
-      encrypted_refresh_token: encrypted,
-      google_email: googleEmail,
-      calendar_id: 'primary',
-      updated_at: new Date().toISOString(),
+    const { error: connectionError } = await supabase.rpc('replace_google_connection', {
+      p_encrypted_token: encrypted,
+      p_google_email: googleEmail,
     })
-    if (insertError) throw insertError
+    if (connectionError) throw connectionError
 
     // Register watch channel — fire-and-forget, production only
     if (process.env.VERCEL_ENV === 'production') {

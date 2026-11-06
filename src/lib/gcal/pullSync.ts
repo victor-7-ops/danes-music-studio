@@ -86,11 +86,7 @@ export async function runPullSync(): Promise<{ inserted: number; deleted: number
     ;({ events, nextSyncToken } = await listExternalEvents(calendar, calendarId, currentSyncToken))
   } catch (err: unknown) {
     if (err instanceof SyncTokenExpiredError) {
-      // Clear stale sync_token, fall back to full sync
-      await db
-        .from('google_tokens')
-        .update({ sync_token: null })
-        .eq('id', googleTokensRow.id)
+      // Keep the saved token until the full replay has persisted successfully.
       ;({ events, nextSyncToken } = await listExternalEvents(calendar, calendarId, null))
     } else {
       throw err
@@ -109,21 +105,29 @@ export async function runPullSync(): Promise<{ inserted: number; deleted: number
   for (const e of external) {
     if (e.status === 'cancelled') {
       // Remove blocked_slot for cancelled GCal event
-      await db
+      const { error } = await db
         .from('blocked_slots')
         .delete()
         .eq('external_id', e.id)
+      if (error) throw error
       deleted++
       continue
     }
 
-    // Conflict check: does a confirmed booking overlap this GCal event's time?
-    const { data: conflictRows } = await db
+    const startAt = e.start?.dateTime ?? (e.start?.date ? `${e.start.date}T00:00:00+08:00` : null)
+    const endAt = e.end?.dateTime ?? (e.end?.date ? `${e.end.date}T00:00:00+08:00` : null)
+    if (!e.id || !startAt || !endAt || !Number.isFinite(Date.parse(startAt)) || !Number.isFinite(Date.parse(endAt)) || Date.parse(startAt) >= Date.parse(endAt)) {
+      throw new Error('Calendar event has an invalid time range')
+    }
+
+    // Google all-day dates use an exclusive end; studio blocks use Manila time.
+    const { data: conflictRows, error: conflictError } = await db
       .from('bookings')
       .select('id, confirmation_code')
       .eq('status', 'confirmed')
-      .lte('start_at', e.end!.dateTime!)
-      .gte('end_at', e.start!.dateTime!)
+      .lt('start_at', endAt)
+      .gt('end_at', startAt)
+    if (conflictError) throw conflictError
 
     if (conflictRows && conflictRows.length > 0) {
       console.error('[gcal:pull] conflict skipped', { gcalEventId: e.id, conflicts: conflictRows })
@@ -132,26 +136,28 @@ export async function runPullSync(): Promise<{ inserted: number; deleted: number
     }
 
     // Upsert blocked_slot for this external GCal event
-    await db
+    const { error: writeError } = await db
       .from('blocked_slots')
       .upsert(
         {
           type: 'gcal',
           external_id: e.id,
-          start_at: e.start!.dateTime!,
-          end_at: e.end!.dateTime!,
+          start_at: startAt,
+          end_at: endAt,
           reason: e.summary ?? 'GCal event',
         },
         { onConflict: 'external_id' }
       )
+    if (writeError) throw writeError
     inserted++
   }
 
   // Persist the new syncToken for the next incremental sync
-  await db
+  const { error: tokenError } = await db
     .from('google_tokens')
     .update({ sync_token: nextSyncToken, updated_at: new Date().toISOString() })
     .eq('id', googleTokensRow.id)
+  if (tokenError) throw tokenError
 
   return { inserted, deleted, conflicts }
 }

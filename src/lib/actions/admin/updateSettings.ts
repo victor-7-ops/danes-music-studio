@@ -41,44 +41,20 @@ export async function updateSettings(
     return { success: false, error: 'ratePerHour must be a positive integer.' }
   }
 
-  // Fetch settings row id
-  const { data: settings, error: fetchError } = await supabase
-    .from('settings')
-    .select('id')
-    .single()
-
-  if (fetchError || !settings) {
-    return { success: false, error: 'Settings not found.' }
-  }
-
-  // Update settings row
-  const { error: settingsError } = await supabase
-    .from('settings')
-    .update({
+  const { error } = await supabase.rpc('update_studio_settings', {
+    p_settings: {
       operating_open: operatingOpen,
       operating_close: operatingClose,
       hold_window_minutes: holdWindowMinutes,
-      // Column is a fraction (numeric(4,3), e.g. 0.500) — params carry whole
-      // percent integers (1-100).
       default_deposit_pct: defaultDepositPct / 100,
       reminder_enabled: reminderEnabled,
-      gcash_qr_url: gcashQrUrl.trim() || null,
-      bank_name: bankName.trim() || null,
-      account_name: accountName.trim() || null,
-      account_number: accountNumber.trim() || null,
-    })
-    .eq('id', settings.id)
-
-  if (settingsError) return { success: false, error: settingsError.message }
-
-  // Update service_types rate
-  // D-13: no retroactive update to existing bookings
-  const { error: rateError } = await supabase
-    .from('service_types')
-    .update({ rate_per_hour: ratePerHour, deposit_pct: defaultDepositPct / 100 })
-    .eq('name', 'Rehearsal')
-
-  if (rateError) return { success: false, error: rateError.message }
-
+      rate_per_hour: ratePerHour,
+      gcash_qr_url: gcashQrUrl.trim(),
+      bank_name: bankName.trim(),
+      account_name: accountName.trim(),
+      account_number: accountNumber.trim(),
+    },
+  })
+  if (error) return { success: false, error: error.message }
   return { success: true }
 }

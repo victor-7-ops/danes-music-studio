@@ -7,7 +7,7 @@ import { formatPHP } from '@/lib/emails/format'
 import { StatCard } from '@/components/admin/StatCard'
 import { RevenueTrendChart } from '@/components/admin/RevenueTrendChart'
 import { SourceBarChart } from '@/components/admin/SourceBarChart'
-import { getPreviousPeriod } from '@/lib/dashboardPeriod'
+import { getDashboardRange, getPreviousPeriod } from '@/lib/dashboardPeriod'
 import Link from 'next/link'
 
 interface DashboardStats {
@@ -72,8 +72,7 @@ export default async function DashboardPage({ searchParams }: PageProps) {
     .toISOString()
     .split('T')[0]
 
-  const from = params.from ?? defaultFrom
-  const to = params.to ?? defaultTo
+  const { from, to } = getDashboardRange(params.from, params.to, defaultFrom, defaultTo)
 
   const supabase = await createClient()
 

@@ -22,10 +22,10 @@ describe('Google Calendar callback', () => {
     } as never)
   })
 
-  it.each(['delete', 'insert'])('reports a failed %s instead of a successful connection', async (operation) => {
+  it('reports a failed atomic replacement without deleting saved credentials', async () => {
     const failure = { data: null, error: { message: 'Database failure' } }
-    const success = { data: null, error: null }
-    const client = makeMockClient({ google_tokens: operation === 'delete' ? [failure] : [success, failure] }, {
+    const client = makeMockClient({}, {
+      rpc: { replace_google_connection: [failure] },
       user: { id: 'admin', app_metadata: { role: 'admin' } },
     })
     vi.mocked(createClient).mockResolvedValue(client as never)
@@ -33,6 +33,8 @@ describe('Google Calendar callback', () => {
     try {
       const response = await GET(new Request('https://studio.example/api/auth/google/callback?code=test&state=test-state'))
       expect(response.headers.get('location')).toBe('https://studio.example/admin/settings?gcal=error')
+      expect(client.from).not.toHaveBeenCalled()
+      expect(client.rpc).toHaveBeenCalledWith('replace_google_connection', { p_encrypted_token: 'encrypted', p_google_email: 'studio@example.com' })
     } finally {
       log.mockRestore()
     }
@@ -54,4 +56,24 @@ describe('Google Calendar callback', () => {
       log.mockRestore()
     }
   })
+})
+
+
+it('uses one atomic replacement for a successful connection', async () => {
+  vi.stubEnv('VERCEL_ENV', 'test')
+  vi.mocked(cookies).mockResolvedValue({ get: () => ({ value: 'test-state' }), delete: vi.fn() } as never)
+  vi.mocked(createOAuth2Client).mockReturnValue({
+    getToken: vi.fn().mockResolvedValue({ tokens: { access_token: 'access', refresh_token: 'refresh' } }),
+    getTokenInfo: vi.fn().mockResolvedValue({ email: 'studio@example.com' }),
+  } as never)
+  const client = makeMockClient({}, { rpc: { replace_google_connection: [{ data: null, error: null }] } })
+  vi.mocked(createClient).mockResolvedValue(client as never)
+  try {
+    const response = await GET(new Request('https://studio.example/api/auth/google/callback?code=test&state=test-state'))
+    expect(response.headers.get('location')).toContain('gcal=connected')
+    expect(client.from).not.toHaveBeenCalled()
+    expect(client.rpc).toHaveBeenCalledTimes(1)
+  } finally {
+    vi.unstubAllEnvs()
+  }
 })

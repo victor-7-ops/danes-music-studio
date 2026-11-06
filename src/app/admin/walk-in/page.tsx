@@ -83,8 +83,9 @@ export default function WalkInPage() {
 
         <div className="space-y-4">
           <div>
-            <label className="block font-sans text-sm uppercase tracking-widest mb-2">Date</label>
+            <label htmlFor="walkin-date" className="block font-sans text-sm uppercase tracking-widest mb-2">Date</label>
             <input
+              id="walkin-date"
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
@@ -93,10 +94,11 @@ export default function WalkInPage() {
           </div>
 
           <div>
-            <label className="block font-sans text-sm uppercase tracking-widest mb-2">Start Time</label>
+            <label htmlFor="walkin-start" className="block font-sans text-sm uppercase tracking-widest mb-2">Start Time</label>
             <input
               type="time"
               step={3600}
+              id="walkin-start"
               value={start}
               onChange={(e) => setStart(e.target.value)}
               className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
@@ -104,10 +106,11 @@ export default function WalkInPage() {
           </div>
 
           <div>
-            <label className="block font-sans text-sm uppercase tracking-widest mb-2">End Time</label>
+            <label htmlFor="walkin-end" className="block font-sans text-sm uppercase tracking-widest mb-2">End Time</label>
             <input
               type="time"
               step={3600}
+              id="walkin-end"
               value={end}
               onChange={(e) => setEnd(e.target.value)}
               className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
@@ -115,8 +118,9 @@ export default function WalkInPage() {
           </div>
 
           <div>
-            <label className="block font-sans text-sm uppercase tracking-widest mb-2">Band Name</label>
+            <label htmlFor="walkin-band" className="block font-sans text-sm uppercase tracking-widest mb-2">Band Name</label>
             <input
+              id="walkin-band"
               type="text"
               value={bandName}
               onChange={(e) => setBandName(e.target.value)}
@@ -125,7 +129,7 @@ export default function WalkInPage() {
             />
           </div>
 
-          {error && <p className="text-red-600 font-sans text-sm">{error}</p>}
+          {error && <p role="alert" className="text-red-600 font-sans text-sm">{error}</p>}
 
           <button
             onClick={handleSubmit}

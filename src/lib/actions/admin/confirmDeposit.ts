@@ -25,12 +25,15 @@ export async function confirmDeposit(
 
   const { data: existing, error: fetchError } = await supabase
     .from('bookings')
-    .select('total_amount')
+    .select('total_amount, amount_paid, status')
     .eq('id', bookingId)
     .single()
 
   if (fetchError || !existing) {
     return { success: false, error: fetchError?.message ?? 'Booking not found.' }
+  }
+  if (!['pending', 'confirmed'].includes(existing.status) || amountReceived < existing.amount_paid || (existing.status === 'confirmed' && amountReceived === existing.amount_paid)) {
+    return { success: false, error: 'Payment or booking state has changed. Refresh before confirming.' }
   }
 
   // Prefer the caller's stated intent (which button was pressed) — falling
@@ -43,11 +46,12 @@ export async function confirmDeposit(
     .from('bookings')
     .update({ status: 'confirmed', amount_paid: amountReceived, payment_method })
     .eq('id', bookingId)
-    .neq('status', 'cancelled')
+    .eq('status', existing.status)
+    .eq('amount_paid', existing.amount_paid)
     .select('confirmation_code, customer_email, customer_name, band_name, start_at, end_at, total_amount, amount_paid, cancel_token')
     .single()
 
-  if (error) return { success: false, error: error.message }
+  if (error || !updated) return { success: false, error: 'Payment or booking state has changed. Refresh before confirming.' }
 
   const warnings: string[] = []
   const synced = await pushGcalEvent(bookingId).catch((err: unknown) => {

@@ -16,8 +16,8 @@ import { makeMockClient } from './supabaseMock'
 describe('confirmDeposit', () => {
   it('preserves the confirmed payment and reports a failed Calendar delivery', async () => {
     const client = makeMockClient({ bookings: [
-      { data: { total_amount: 35000 }, error: null },
-      { data: null, error: null },
+      { data: { total_amount: 35000, amount_paid: 0, status: 'pending' }, error: null },
+      { data: { confirmation_code: 'TEST', amount_paid: 35000 }, error: null },
     ] })
     vi.mocked(createClient).mockResolvedValue(client as never)
     vi.mocked(pushGcalEvent).mockRejectedValueOnce(new Error('Calendar unavailable'))
@@ -43,7 +43,7 @@ describe('confirmDeposit', () => {
     }
     const client = makeMockClient({
       bookings: [
-        { data: { total_amount: 100000 }, error: null },
+        { data: { total_amount: 100000, amount_paid: 0, status: 'pending' }, error: null },
         { data: updatedRow, error: null },
       ],
     })
@@ -65,7 +65,8 @@ describe('confirmDeposit', () => {
       payment_method: 'deposit',
     })
     // Guard against re-confirming an already-cancelled booking.
-    expect(updateBuilder.neq).toHaveBeenCalledWith('status', 'cancelled')
+    expect(updateBuilder.eq).toHaveBeenCalledWith('status', 'pending')
+    expect(updateBuilder.eq).toHaveBeenCalledWith('amount_paid', 0)
   })
 
   it('rejects a negative amount without touching the database', async () => {
@@ -82,7 +83,7 @@ describe('confirmDeposit', () => {
   it('rejects an already-cancelled booking (neq guard yields no row -> error)', async () => {
     const client = makeMockClient({
       bookings: [
-        { data: { total_amount: 100000 }, error: null },
+        { data: { total_amount: 100000, amount_paid: 0, status: 'pending' }, error: null },
         {
           data: null,
           error: { message: 'JSON object requested, multiple (or no) rows returned' },
@@ -106,4 +107,33 @@ describe('confirmDeposit', () => {
     expect(result).toEqual({ success: false, error: 'Unauthorized' })
     expect(client.from).not.toHaveBeenCalled()
   })
+})
+
+
+it.each([
+  ['confirmed', 35000, 17500],
+  ['confirmed', 35000, 35000],
+  ['completed', 17500, 35000],
+  ['cancelled', 0, 35000],
+])('rejects stale payment for %s without updating', async (status, paid, received) => {
+  const client = makeMockClient({ bookings: [{ data: { total_amount: 35000, amount_paid: paid, status }, error: null }] })
+  vi.mocked(createClient).mockResolvedValue(client as never)
+  vi.mocked(pushGcalEvent).mockClear()
+  expect((await confirmDeposit('booking', received)).success).toBe(false)
+  expect(client.from).toHaveBeenCalledTimes(1)
+  expect(pushGcalEvent).not.toHaveBeenCalled()
+})
+
+it('stops delivery if a concurrent confirmation wins the conditional update', async () => {
+  const client = makeMockClient({ bookings: [
+    { data: { total_amount: 35000, amount_paid: 17500, status: 'confirmed' }, error: null },
+    { data: null, error: { message: 'No rows' } },
+  ] })
+  vi.mocked(createClient).mockResolvedValue(client as never)
+  vi.mocked(pushGcalEvent).mockClear()
+  expect((await confirmDeposit('booking', 35000, 'full')).success).toBe(false)
+  const write = client.from.mock.results[1].value
+  expect(write.eq).toHaveBeenCalledWith('amount_paid', 17500)
+  expect(write.eq).toHaveBeenCalledWith('status', 'confirmed')
+  expect(pushGcalEvent).not.toHaveBeenCalled()
 })

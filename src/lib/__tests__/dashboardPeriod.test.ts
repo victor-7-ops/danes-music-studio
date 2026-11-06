@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { getPreviousPeriod } from '../dashboardPeriod'
+import { getDashboardRange, getPreviousPeriod } from '../dashboardPeriod'
 
 describe('getPreviousPeriod', () => {
   it('30-day range â†’ previous 30-day range ending the day before', () => {
@@ -29,4 +29,12 @@ describe('getPreviousPeriod', () => {
       prevTo: '2026-01-31',
     })
   })
+})
+
+
+it.each([['', '2026-11-30'], ['garbage', '2026-11-30'], ['2026-02-30', '2026-11-30'], ['2026-12-01', '2026-11-30']])('defaults invalid dashboard range %s–%s', (from, to) => {
+  expect(getDashboardRange(from, to, '2026-11-01', '2026-11-30')).toEqual({ from: '2026-11-01', to: '2026-11-30' })
+})
+it('retains valid dashboard dates', () => {
+  expect(getDashboardRange('2026-10-01', '2026-10-31', '2026-11-01', '2026-11-30')).toEqual({ from: '2026-10-01', to: '2026-10-31' })
 })
