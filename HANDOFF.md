@@ -10,9 +10,9 @@ This is the current pickup note. It replaces the old Phase 1 checklist and refer
 - Local checkout: `C:/Users/VictorAlexis Gadiana/Documents/Github/danes-music-studio`
 - Production: https://danes-music-studio.vercel.app
 - Local development: http://localhost:3000
-- Latest verified application commit: `80b96e2` on remote `main`.
+- Latest verified application commit: `aafc083` on remote `main` (responsive bookings redesign).
 - Local branch at handoff: `codex/audit-fixes`; application commits were pushed with `git push origin HEAD:main`.
-- Production deployment for that commit: `dpl_Ehd7avbZRzPpzL39LfFRP91SNhr8`, verified READY.
+- Production deployment for that commit: `dpl_EGfqxHAHccbm47FyKRBrtXqmVKKJ`, verified READY.
 - Supabase production project: `hrvnoxhnwrnnwnlajejt` (Danes). A separate account also has another studio-named project; do not confuse them.
 - Studio admin and connected Google Calendar account: `dmstudio.admin@gmail.com`. Never put passwords or tokens in documentation.
 
@@ -36,7 +36,7 @@ The bookings page now uses responsive cards instead of the wide eleven-column ta
 
 Calendar/email recovery actions are inside a native `Calendar & email` disclosure. Controls have 44px minimum hit areas, specific loading feedback, and distinct success/error announcements. Filters retain their GET/query behavior, reset correctly after client-side clearing, and have separate filtered-empty and database-error states. No database or payment rules changed.
 
-Local browser checks covered 375px, 768px, and 1440px widths, applying/clearing the pending filter, opening the recovery disclosure, and recovering from an invalid status filter. Ten targeted tests passed across three files, including unavailable pending recovery, server failure feedback, successful email feedback, existing retry authorization, and mixed-outcome drawer feedback. Lint and TypeScript passed. Production verification of this UI follow-up is pending deployment.
+Local browser checks covered 375px, 768px, and 1440px widths, applying/clearing the pending filter, opening the recovery disclosure, and recovering from an invalid status filter. Ten targeted tests passed across three files, including unavailable pending recovery, server failure feedback, successful email feedback, existing retry authorization, and mixed-outcome drawer feedback. Lint and TypeScript passed. Production deployment `aafc083` is READY: the phone and desktop layouts have no page-level horizontal overflow, applying/clearing filters resets both controls and results, and Calendar recovery from the new disclosure returned `Calendar updated.`. Temporary viewport overrides were reset. This pass did not create bookings or resend customer emails.
 
 `CODE_QUALITY_REVIEW.md` records a review of `0befe64..50160e6`. Both P2 findings were addressed in `80b96e2`:
 
@@ -57,7 +57,7 @@ The maintenance/special-hours trigger was repaired in `20261105134109_harden_dat
 
 ## Remaining work and explicit deferrals
 
-- A separate standalone review of the `80b96e2` follow-up diff has not run. Victor's project instructions require an explicit invocation of `$thermo-nuclear-code-quality-review`; do not run the standalone skill automatically. Thermos is only authorized when Victor labels a change medium-risk.
+- A separate standalone review of the `80b96e2` fixes or `aafc083` UI follow-up has not run. Victor's project instructions require an explicit invocation of `$thermo-nuclear-code-quality-review`; do not run the standalone skill automatically. Thermos is only authorized when Victor labels a change medium-risk.
 - The only remaining Supabase security-advisor warning at the last check was leaked-password protection. The organization is on Free; the feature requires Pro or above. Victor explicitly deferred it. Do not upgrade billing or keep asking about it.
 - Keep the existing email sender. Branded-domain sender work is deferred; ownership of `danesmusicstudio.com` was not established.
 - Mixed provider/database failures were tested with mocks, not by deliberately breaking live production services. Do not describe the system as guaranteed bug-free.
@@ -84,6 +84,8 @@ Use Node 22.14.x and the package manager declared in `package.json` (pnpm 12.11.
 - `src/lib/gcal/pushSync.ts`: Calendar push/delete identity and idempotence.
 - `src/lib/actions/admin/cancelSeries.ts`: per-occurrence cancellation and delivery warnings.
 - `src/components/admin/BookingDrawer.tsx`: mixed-outcome display.
+- `src/app/admin/bookings/page.tsx`: responsive booking cards, GET filters, empty/error states.
+- `src/components/admin/BookingDeliveryActions.tsx`: expandable recovery controls and delivery feedback.
 - `src/app/api/cron/reminder/route.ts`: claimed reminder delivery.
 - `supabase/migrations/20261105130530_use_vault_for_scheduled_jobs.sql`: scheduled endpoint configuration.
 - `supabase/migrations/20261105134109_harden_database_execution.sql`: schedule guards and execution hardening.
