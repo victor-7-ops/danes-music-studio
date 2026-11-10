@@ -67,8 +67,18 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { error } = await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', booking.id)
-  if (error) return NextResponse.json({ error: 'Unable to reschedule booking. Please retry.' }, { status: 503 })
+  const { data: updated, error } = await supabase
+    .from('bookings')
+    .update({ status: 'cancelled' })
+    .eq('id', booking.id)
+    .eq('status', booking.status)
+    .select('id')
+    .single()
+  if (error || !updated) {
+    return NextResponse.redirect(
+      new URL(`/booking/${booking.confirmation_code}?token=${token}&error=already_cancelled`, req.url), 303
+    )
+  }
 
   if (booking.status === 'confirmed' || booking.gcal_event_id) {
     await deleteGcalEvent(booking).catch((err: unknown) => {

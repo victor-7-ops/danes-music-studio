@@ -38,7 +38,7 @@ describe('cancelBooking', () => {
     const client = makeMockClient({
       bookings: [
         { data: booking, error: null },
-        { data: null, error: null }, // the update() call
+        { data: { id: booking.id }, error: null }, // the update() call
       ],
     })
     vi.mocked(createClient).mockResolvedValue(client as never)
@@ -71,7 +71,7 @@ describe('cancelBooking', () => {
     const client = makeMockClient({
       bookings: [
         { data: booking, error: null },
-        { data: null, error: null },
+        { data: { id: booking.id }, error: null },
       ],
     })
     vi.mocked(createClient).mockResolvedValue(client as never)
