@@ -24,6 +24,8 @@ interface ReviewSummaryProps {
   phone: string
   bandName: string
   equipment: EquipmentOption[]
+  voucherCode?: string
+  voucherDiscountCents?: number
   onConfirm: (recurring: boolean, occurrenceCount: number) => Promise<void>
 }
 
@@ -56,6 +58,8 @@ export default function ReviewSummary({
   phone,
   bandName,
   equipment,
+  voucherCode,
+  voucherDiscountCents = 0,
   onConfirm,
 }: ReviewSummaryProps) {
   const [agreed, setAgreed] = useState(false)
@@ -68,9 +72,11 @@ export default function ReviewSummary({
   const hours = endHour - startHour
   const studioCents = hours * rateCents
   const equipmentCents = equipment.reduce((sum, item) => sum + item.price_per_session, 0)
-  const totalCents = studioCents + equipmentCents
+  const discountCents = Math.min(voucherDiscountCents, studioCents)
+  const discountedStudioCents = studioCents - discountCents
+  const totalCents = discountedStudioCents + equipmentCents
   const depositCents = Math.floor(totalCents * depositPct)
-  const amountDue = payment === 'full' ? totalCents : depositCents
+  const amountDue = totalCents === 0 ? 0 : payment === 'full' ? totalCents : depositCents
   const balanceCents = totalCents - depositCents
 
   const formattedDate = new Date(`${date}T00:00:00+08:00`).toLocaleDateString('en-PH', {
@@ -134,21 +140,27 @@ export default function ReviewSummary({
           <h2 className={sectionHeading}>Payment</h2>
           <div className="border border-border divide-y divide-border">
             <Row label="Rate" value={`${formatCents(rateCents)} / hr`} />
+            <Row label="Studio subtotal" value={formatCents(studioCents)} />
+            {voucherCode && discountCents > 0 && (
+              <Row label={`Voucher ${voucherCode}`} value={`-${formatCents(discountCents)}`} />
+            )}
             {equipment.length > 0 && (
               <Row label="Gear" value={equipment.map((item) => `${item.name} (+${formatCents(item.price_per_session)})`).join(', ')} />
             )}
             <Row label="Total" value={formatCents(totalCents)} />
-            <Row
-              label="Payment type"
-              value={payment === 'full' ? 'Full payment' : `${Math.round(depositPct * 100)}% deposit`}
-            />
+            {totalCents > 0 && (
+              <Row
+                label="Payment type"
+                value={payment === 'full' ? 'Full payment' : `${Math.round(depositPct * 100)}% deposit`}
+              />
+            )}
             <div className="flex justify-between items-baseline px-4 py-3">
-              <span className={rowLabel}>Amount due now</span>
+              <span className={rowLabel}>{totalCents === 0 ? 'Amount due' : 'Amount due now'}</span>
               <span className="font-display text-2xl text-ink font-bold">
-                {formatCents(amountDue)}
+                {totalCents === 0 ? 'No payment required' : formatCents(amountDue)}
               </span>
             </div>
-            {payment === 'deposit' && (
+            {totalCents > 0 && payment === 'deposit' && (
               <div className="px-4 py-2">
                 <p className="font-sans text-sm text-muted">
                   Balance {formatCents(balanceCents)} due on arrival

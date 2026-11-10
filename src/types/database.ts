@@ -136,6 +136,9 @@ export type Database = {
           status: Database["public"]["Enums"]["booking_status"]
           total_amount: number
           updated_at: string
+          voucher_id: string | null
+          voucher_code_snapshot: string | null
+          voucher_discount_centavos: number
         }
         Insert: {
           amount_paid?: number
@@ -165,6 +168,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount: number
           updated_at?: string
+          voucher_id?: string | null
+          voucher_code_snapshot?: string | null
+          voucher_discount_centavos?: number
         }
         Update: {
           amount_paid?: number
@@ -194,6 +200,9 @@ export type Database = {
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number
           updated_at?: string
+          voucher_id?: string | null
+          voucher_code_snapshot?: string | null
+          voucher_discount_centavos?: number
         }
         Relationships: [
           {
@@ -208,6 +217,13 @@ export type Database = {
             columns: ["service_type_id"]
             isOneToOne: false
             referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
             referencedColumns: ["id"]
           },
         ]
@@ -421,6 +437,120 @@ export type Database = {
         }
         Relationships: []
       }
+      vouchers: {
+        Row: {
+          id: string
+          code: string
+          percent: number
+          enabled: boolean
+          starts_at: string | null
+          expires_at: string | null
+          max_redemptions: number | null
+          redemptions_used: number
+          eligible_service_ids: string[] | null
+          min_studio_subtotal_centavos: number | null
+          booking_date_start: string | null
+          booking_date_end: string | null
+          max_discount_centavos: number | null
+          per_customer_limit: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          code: string
+          percent: number
+          enabled?: boolean
+          starts_at?: string | null
+          expires_at?: string | null
+          max_redemptions?: number | null
+          redemptions_used?: number
+          eligible_service_ids?: string[] | null
+          min_studio_subtotal_centavos?: number | null
+          booking_date_start?: string | null
+          booking_date_end?: string | null
+          max_discount_centavos?: number | null
+          per_customer_limit?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          code?: string
+          percent?: number
+          enabled?: boolean
+          starts_at?: string | null
+          expires_at?: string | null
+          max_redemptions?: number | null
+          redemptions_used?: number
+          eligible_service_ids?: string[] | null
+          min_studio_subtotal_centavos?: number | null
+          booking_date_start?: string | null
+          booking_date_end?: string | null
+          max_discount_centavos?: number | null
+          per_customer_limit?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      voucher_redemptions: {
+        Row: {
+          id: string
+          voucher_id: string
+          booking_id: string
+          customer_email_normalized: string
+          studio_subtotal_centavos: number
+          equipment_subtotal_centavos: number
+          percent_snapshot: number
+          discount_centavos: number
+          state: string
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          voucher_id: string
+          booking_id: string
+          customer_email_normalized: string
+          studio_subtotal_centavos: number
+          equipment_subtotal_centavos: number
+          percent_snapshot: number
+          discount_centavos: number
+          state: string
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          voucher_id?: string
+          booking_id?: string
+          customer_email_normalized?: string
+          studio_subtotal_centavos?: number
+          equipment_subtotal_centavos?: number
+          percent_snapshot?: number
+          discount_centavos?: number
+          state?: string
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voucher_redemptions_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voucher_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -435,6 +565,10 @@ export type Database = {
         Returns: undefined
       }
       create_customer_reservations: {
+        Args: { p_request: Json }
+        Returns: Json
+      }
+      create_admin_booking: {
         Args: { p_request: Json }
         Returns: Json
       }
@@ -458,6 +592,45 @@ export type Database = {
           unavailable_id: string
           unavailable_name: string
         }[]
+      }
+      compute_voucher_discount: {
+        Args: { p_subtotal: number; p_percent: number; p_max_discount: number | null }
+        Returns: number
+      }
+      validate_and_reserve_voucher: {
+        Args: {
+          p_code: string
+          p_service_id: string
+          p_session_date: string
+          p_studio_subtotal: number
+          p_equipment_subtotal: number
+          p_email: string
+          p_booking_id: string
+        }
+        Returns: number
+      }
+      preview_voucher_discount: {
+        Args: {
+          p_code: string
+          p_service_id: string
+          p_session_date: string
+          p_studio_subtotal: number
+          p_equipment_subtotal: number
+          p_email: string
+        }
+        Returns: Json
+      }
+      release_voucher_redemption: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
+      consume_voucher_redemption: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
+      upsert_voucher: {
+        Args: { p_voucher: Json }
+        Returns: string
       }
     }
     Enums: {

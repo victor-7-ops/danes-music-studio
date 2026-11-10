@@ -16,6 +16,7 @@ export default function NewBookingPage() {
   const [customerEmail, setCustomerEmail] = useState('')
   const [bandName, setBandName] = useState('')
   const [paymentType, setPaymentType] = useState<PaymentType>('unpaid')
+  const [voucherCode, setVoucherCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [successCode, setSuccessCode] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -29,6 +30,7 @@ export default function NewBookingPage() {
     setCustomerEmail('')
     setBandName('')
     setPaymentType('unpaid')
+    setVoucherCode('')
     setError(null)
     setSuccessCode(null)
   }
@@ -63,6 +65,7 @@ export default function NewBookingPage() {
         customerEmail: customerEmail.trim() || undefined,
         bandName: bandName.trim() || undefined,
         paymentType,
+        voucherCode: voucherCode.trim() || undefined,
       })
       if (result.success && result.code) {
         setSuccessCode(result.code)
@@ -215,6 +218,20 @@ export default function NewBookingPage() {
               type="text"
               value={bandName}
               onChange={(e) => setBandName(e.target.value)}
+              placeholder="Optional"
+              className={inputClass}
+            />
+          </div>
+
+          <div>
+            <label htmlFor="nb-voucher" className={labelClass}>
+              Voucher Code
+            </label>
+            <input
+              id="nb-voucher"
+              type="text"
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
               placeholder="Optional"
               className={inputClass}
             />

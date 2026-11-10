@@ -17,6 +17,7 @@ export default function WalkInPage() {
   const [start, setStart] = useState(currentHour())
   const [end, setEnd] = useState('')
   const [bandName, setBandName] = useState('')
+  const [voucherCode, setVoucherCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [successCode, setSuccessCode] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
@@ -26,6 +27,7 @@ export default function WalkInPage() {
     setStart(currentHour())
     setEnd('')
     setBandName('')
+    setVoucherCode('')
     setError(null)
     setSuccessCode(null)
   }
@@ -49,6 +51,7 @@ export default function WalkInPage() {
         start,
         end,
         bandName: bandName.trim() || undefined,
+        voucherCode: voucherCode.trim() || undefined,
       })
       if (result.success && result.code) {
         setSuccessCode(result.code)
@@ -125,6 +128,18 @@ export default function WalkInPage() {
               value={bandName}
               onChange={(e) => setBandName(e.target.value)}
               placeholder="Band name (optional)"
+              className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+            />
+          </div>
+
+          <div>
+            <label htmlFor="walkin-voucher" className="block font-sans text-sm uppercase tracking-widest mb-2">Voucher Code</label>
+            <input
+              id="walkin-voucher"
+              type="text"
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+              placeholder="Optional"
               className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
             />
           </div>

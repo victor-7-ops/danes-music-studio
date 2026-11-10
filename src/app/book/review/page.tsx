@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import ReviewPage from '@/components/booking/ReviewPage'
 import { createClient } from '@/lib/supabase/server'
 import { SERVICES, isServiceSlug } from '@/lib/services'
+import { quoteVoucher } from '@/lib/actions/voucherQuote'
 
 interface PageProps {
   searchParams: Promise<{
@@ -15,12 +16,13 @@ interface PageProps {
     phone?: string
     band?: string
     equipment?: string
+    voucher?: string
   }>
 }
 
 export default async function ReviewServerPage({ searchParams }: PageProps) {
   const params = await searchParams
-  const { date, start, end, payment, name, email, phone, band, equipment } = params
+  const { date, start, end, payment, name, email, phone, band, equipment, voucher } = params
   const service = params.service ?? 'rehearsal'
 
   if (!date || !start || !end || !payment || !name || !email || !phone || !isServiceSlug(service)) {
@@ -59,6 +61,21 @@ export default async function ReviewServerPage({ searchParams }: PageProps) {
   const decodedPhone = decodeURIComponent(phone)
   const bandName = band ? decodeURIComponent(band) : ''
 
+  let voucherDiscountCents = 0
+  if (voucher) {
+    const hours = parseInt(end.slice(0, 2)) - parseInt(start.slice(0, 2))
+    const equipmentCents = (selectedEquipment ?? []).reduce((sum, item) => sum + item.price_per_session, 0)
+    const quote = await quoteVoucher({
+      code: voucher,
+      service,
+      sessionDate: date,
+      studioSubtotalCents: hours * serviceType.rate_per_hour,
+      equipmentSubtotalCents: equipmentCents,
+      email: decodedEmail,
+    })
+    if (quote.valid) voucherDiscountCents = quote.discountCents
+  }
+
   return (
     <div className="min-h-screen bg-bg px-6 py-16">
       <ReviewPage
@@ -75,6 +92,8 @@ export default async function ReviewServerPage({ searchParams }: PageProps) {
         phone={decodedPhone}
         bandName={bandName}
         equipment={selectedEquipment ?? []}
+        voucherCode={voucher ?? undefined}
+        voucherDiscountCents={voucherDiscountCents}
       />
     </div>
   )

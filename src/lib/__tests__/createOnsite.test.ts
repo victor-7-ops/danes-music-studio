@@ -1,25 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 vi.mock('@/lib/gcal/pushSync', () => ({ pushGcalEvent: vi.fn().mockResolvedValue(undefined) }))
 import { pushGcalEvent } from '@/lib/gcal/pushSync'
 
-let depositPct = 0.5
-const insertMock = vi.fn((booking: { id: string }) => Promise.resolve({ data: booking, error: null }))
-const singleMock = vi.fn(() =>
-  Promise.resolve({ data: { id: 'svc-1', rate_per_hour: 35000, deposit_pct: depositPct }, error: null })
-)
-const eqMock = vi.fn(() => ({ single: singleMock }))
-const selectMock = vi.fn(() => ({ eq: eqMock }))
-const fromMock = vi.fn((table: string) => {
-  if (table === 'service_types') return { select: selectMock }
-  return { insert: insertMock }
-})
+const rpcMock = vi.fn(() => Promise.resolve({ data: { id: 'booking-1', code: 'DMS-ABC', status: 'confirmed' }, error: null }))
 const getUserMock = vi.fn(() => Promise.resolve({ data: { user: { id: 'admin-1', app_metadata: { role: 'admin' } } } }))
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: () =>
     Promise.resolve({
       auth: { getUser: getUserMock },
-      from: fromMock,
+      rpc: rpcMock,
     }),
 }))
 
@@ -35,38 +25,40 @@ const baseParams = {
   paymentType: 'deposit' as const,
 }
 
-describe('createOnsite deposit calculation', () => {
-  it('syncs the inserted confirmed booking to Google Calendar', async () => {
+describe('createOnsite', () => {
+  beforeEach(() => {
+    rpcMock.mockClear()
+    rpcMock.mockResolvedValue({ data: { id: 'booking-1', code: 'DMS-ABC', status: 'confirmed' }, error: null })
     vi.mocked(pushGcalEvent).mockClear()
-    await createOnsite(baseParams)
-    expect(pushGcalEvent).toHaveBeenCalledWith(
-      insertMock.mock.calls.at(-1)?.[0].id
-    )
   })
 
-  it('keeps unpaid bookings out of Google Calendar', async () => {
-    vi.mocked(pushGcalEvent).mockClear()
+  it('calls the atomic admin booking RPC with mode=onsite', async () => {
+    await createOnsite(baseParams)
+    expect(rpcMock).toHaveBeenCalledWith('create_admin_booking', { p_request: expect.objectContaining({
+      mode: 'onsite', date: '2026-01-01', start: '10:00', end: '12:00',
+      service: 'Rehearsal', payment_type: 'deposit', customer_name: 'Test Band',
+    }) })
+  })
+
+  it('syncs the inserted confirmed booking to Google Calendar', async () => {
+    await createOnsite(baseParams)
+    expect(pushGcalEvent).toHaveBeenCalledWith('booking-1')
+  })
+
+  it('keeps unpaid (pending) bookings out of Google Calendar', async () => {
+    rpcMock.mockResolvedValue({ data: { id: 'booking-2', code: 'DMS-DEF', status: 'pending' }, error: null })
     await createOnsite({ ...baseParams, paymentType: 'unpaid' })
     expect(pushGcalEvent).not.toHaveBeenCalled()
   })
-  it('uses configured deposit_pct (0.3), not a hardcoded 50%', async () => {
-    depositPct = 0.3
-    await createOnsite(baseParams)
-    const totalAmount = 2 * 35000
-    const expectedDeposit = Math.floor(totalAmount * 0.3)
-    expect(insertMock).toHaveBeenCalledWith(
-      expect.objectContaining({ deposit_amount: expectedDeposit })
-    )
+
+  it('surfaces overlap errors from the RPC', async () => {
+    rpcMock.mockResolvedValue({ data: null, error: { message: 'bookings_no_overlap' } } as never)
+    expect(await createOnsite(baseParams)).toEqual({ success: false, error: 'That time slot is already booked.' })
   })
 
-  it('still computes correctly when deposit_pct is 0.5', async () => {
-    depositPct = 0.5
-    await createOnsite(baseParams)
-    const totalAmount = 2 * 35000
-    const expectedDeposit = Math.floor(totalAmount * 0.5)
-    expect(insertMock).toHaveBeenCalledWith(
-      expect.objectContaining({ deposit_amount: expectedDeposit })
-    )
+  it('passes through an optional voucher code', async () => {
+    await createOnsite({ ...baseParams, voucherCode: 'summer20' })
+    expect(rpcMock).toHaveBeenCalledWith('create_admin_booking', { p_request: expect.objectContaining({ voucher_code: 'summer20' }) })
   })
 })
 
@@ -75,15 +67,16 @@ describe.each([
   ['onsite', createOnsite],
   ['walk-in', createWalkIn],
 ] as const)('%s time validation', (_name, create) => {
+  beforeEach(() => rpcMock.mockClear())
+
   it.each([
     ['10:30', '12:00'],
     ['10:00', '12:30'],
     ['25:00', '26:00'],
-  ])('rejects %s–%s before querying or charging', async (start, end) => {
-    fromMock.mockClear()
+  ])('rejects %s–%s before calling the RPC', async (start, end) => {
     expect(await create({ ...baseParams, start, end })).toEqual({
       success: false, error: 'Invalid parameters.',
     })
-    expect(fromMock).not.toHaveBeenCalled()
+    expect(rpcMock).not.toHaveBeenCalled()
   })
 })

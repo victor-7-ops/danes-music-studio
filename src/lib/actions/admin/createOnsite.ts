@@ -1,8 +1,6 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
-import { createConfirmationCode } from '@/lib/confirmationCode'
-import { randomUUID } from 'crypto'
 import { pushGcalEvent } from '@/lib/gcal/pushSync'
 
 export type PaymentType = 'unpaid' | 'deposit' | 'full'
@@ -16,6 +14,8 @@ export interface CreateOnsiteParams {
   customerPhone: string
   bandName?: string
   paymentType: PaymentType
+  equipmentIds?: string[]
+  voucherCode?: string
 }
 
 export async function createOnsite(
@@ -27,81 +27,50 @@ export async function createOnsite(
   } = await supabase.auth.getUser()
   if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
-  const { date, start, end, customerName, customerEmail, customerPhone, bandName, paymentType } = params
-
-  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date)
-  const startOk = /^(?:[01]\d|2[0-3]):00$/.test(start)
-  const endOk = /^(?:[01]\d|2[0-3]|24):00$/.test(end)
-  const startHour = parseInt(start.split(':')[0])
-  const endHour = parseInt(end.split(':')[0])
+  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(params.date)
+  const startOk = /^(?:[01]\d|2[0-3]):00$/.test(params.start)
+  const endOk = /^(?:[01]\d|2[0-3]|24):00$/.test(params.end)
+  const startHour = parseInt(params.start.split(':')[0])
+  const endHour = parseInt(params.end.split(':')[0])
   const hoursOk = endHour > startHour
-  const nameOk = customerName.trim().length >= 2
-  const phoneOk = customerPhone.trim().length >= 7
-
+  const nameOk = params.customerName.trim().length >= 2
+  const phoneOk = params.customerPhone.trim().length >= 7
   if (!dateOk || !startOk || !endOk || !hoursOk || !nameOk || !phoneOk) {
     return { success: false, error: 'Invalid parameters.' }
   }
 
-  const { data: serviceType, error: serviceError } = await supabase
-    .from('service_types')
-    .select('id, rate_per_hour, deposit_pct')
-    .eq('name', 'Rehearsal')
-    .single()
-
-  if (serviceError || !serviceType) {
-    return { success: false, error: 'Service configuration error.' }
-  }
-
-  const hours = endHour - startHour
-  const total_amount = hours * serviceType.rate_per_hour
-  const deposit_amount = Math.floor(total_amount * serviceType.deposit_pct)
-
-  const code = createConfirmationCode()
-
-  const start_at = `${date}T${start}:00+08:00`
-  const end_at = `${date}T${end}:00+08:00`
-
-  // D-09 status logic
-  const status = paymentType === 'unpaid' ? 'pending' : 'confirmed'
-  const amount_paid =
-    paymentType === 'full' ? total_amount : paymentType === 'deposit' ? deposit_amount : 0
-  const payment_method = paymentType === 'unpaid' ? 'none' : paymentType
-
-  const bookingId = randomUUID()
-  const { error: insertError } = await supabase.from('bookings').insert({
-    id: bookingId,
-    confirmation_code: code,
-    customer_name: customerName.trim(),
-    customer_email: customerEmail?.trim() ?? '',
-    customer_phone: customerPhone.trim(),
-    band_name: bandName?.trim() || null,
-    start_at,
-    end_at,
-    service_type_id: serviceType.id,
-    status,
-    source: 'onsite',
-    hold_expires_at: null,
-    total_amount,
-    deposit_amount,
-    amount_paid,
-    payment_method,
+  const { data, error } = await supabase.rpc('create_admin_booking', {
+    p_request: {
+      mode: 'onsite',
+      date: params.date,
+      start: params.start,
+      end: params.end,
+      service: 'Rehearsal',
+      customer_name: params.customerName.trim(),
+      customer_email: params.customerEmail?.trim() ?? '',
+      customer_phone: params.customerPhone.trim(),
+      band_name: params.bandName?.trim() || null,
+      payment_type: params.paymentType,
+      equipment_ids: [...new Set(params.equipmentIds ?? [])],
+      voucher_code: params.voucherCode?.trim() || null,
+    },
   })
 
-  if (insertError) {
-    if (
-      insertError.message.includes('bookings_no_overlap') ||
-      insertError.message.includes('exclusion constraint')
-    ) {
-      return { success: false, error: 'That time slot is already booked.' }
-    }
-    return { success: false, error: insertError.message }
+  if (error || !data) {
+    const message = error?.message ?? ''
+    if (/bookings_no_overlap/i.test(message)) return { success: false, error: 'That time slot is already booked.' }
+    if (/equipment_unavailable/i.test(message)) return { success: false, error: 'Requested equipment is unavailable for the selected time.' }
+    if (/voucher_/i.test(message)) return { success: false, error: 'That voucher code is not valid for this booking.' }
+    if (/invalid_booking_parameters/i.test(message)) return { success: false, error: 'Invalid parameters.' }
+    return { success: false, error: message || 'Something went wrong.' }
   }
 
-  if (status === 'confirmed') {
-    await pushGcalEvent(bookingId).catch((err: unknown) => {
+  const result = data as { id: string; code: string; status: string }
+  if (result.status === 'confirmed') {
+    await pushGcalEvent(result.id).catch((err: unknown) => {
       console.error('[gcal:push] createOnsite failed', err)
     })
   }
 
-  return { success: true, code }
+  return { success: true, code: result.code }
 }
