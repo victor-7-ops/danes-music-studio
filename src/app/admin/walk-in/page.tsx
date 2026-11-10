@@ -67,7 +67,7 @@ export default function WalkInPage() {
         <div className="max-w-sm w-full text-center space-y-6">
           <h1 className="font-display text-3xl">Walk-In Booked</h1>
           <p className="font-sans text-sm text-muted uppercase tracking-widest">Confirmation Code</p>
-          <p className="font-display text-4xl tracking-widest">{successCode}</p>
+          <p className="font-display text-3xl sm:text-4xl tracking-widest break-all">{successCode}</p>
           <button
             onClick={resetForm}
             className="bg-ink text-bg px-6 py-3 font-sans text-xs uppercase tracking-widest hover:opacity-80 transition-opacity"

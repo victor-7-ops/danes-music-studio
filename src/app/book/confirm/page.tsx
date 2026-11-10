@@ -59,7 +59,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
           <p className="font-sans text-sm text-ink mb-8">No payment required.</p>
         ) : null}
 
-        <div className="font-display text-4xl text-ink tracking-widest mb-8">
+        <div className="font-display text-3xl sm:text-4xl text-ink tracking-widest mb-8 break-all px-4">
           {booking.confirmation_code}
         </div>
 
@@ -94,7 +94,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
           Your slot is still held. Try again before time runs out.
         </p>
 
-        <div className="font-display text-4xl text-ink tracking-widest mb-8">
+        <div className="font-display text-3xl sm:text-4xl text-ink tracking-widest mb-8 break-all px-4">
           {booking.confirmation_code}
         </div>
 
@@ -131,7 +131,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
           We&apos;re reviewing your payment. You&apos;ll get a confirmation email once it&apos;s verified.
         </p>
 
-        <div className="font-display text-4xl text-ink tracking-widest mb-8">
+        <div className="font-display text-3xl sm:text-4xl text-ink tracking-widest mb-8 break-all px-4">
           {booking.confirmation_code}
         </div>
 
@@ -157,7 +157,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
         Your rehearsal slot is reserved.
       </p>
 
-      <div className="font-display text-4xl text-ink tracking-widest mb-8">
+      <div className="font-display text-3xl sm:text-4xl text-ink tracking-widest mb-8 break-all px-4">
         {code}
       </div>
 

@@ -81,7 +81,7 @@ export default function NewBookingPage() {
         <div className="max-w-sm w-full text-center space-y-6">
           <h1 className="font-display text-3xl">Booking Created</h1>
           <p className="font-sans text-sm text-muted uppercase tracking-widest">Confirmation Code</p>
-          <p className="font-display text-4xl tracking-widest" aria-live="polite">{successCode}</p>
+          <p className="font-display text-3xl sm:text-4xl tracking-widest break-all" aria-live="polite">{successCode}</p>
           <p className="font-sans text-sm text-muted">
             Status: {paymentType === 'unpaid' ? 'Pending' : 'Confirmed'}
           </p>
