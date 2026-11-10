@@ -2,7 +2,7 @@
 // Slugs live in URLs; names live in the DB. Keep in sync with seed migrations.
 export const SERVICES = {
   rehearsal: { name: 'Rehearsal', label: 'Rehearsal' },
-  recording: { name: 'Regular Tracking', label: 'Recording' },
+  recording: { name: 'Recording', label: 'Recording' },
 } as const
 
 export type ServiceSlug = keyof typeof SERVICES
