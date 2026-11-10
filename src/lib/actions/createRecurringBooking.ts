@@ -7,7 +7,7 @@ import { validateBookingInput, weeklyDates } from '@/lib/bookingValidation'
 export interface CreateRecurringBookingParams {
   date: string; start: string; end: string; service: string
   payment: 'full' | 'deposit'; contactName: string; email: string; phone: string
-  bandName: string; equipmentIds?: string[]; occurrenceCount: number
+  bandName: string; equipmentIds?: string[]; occurrenceCount: number; voucherCode?: string
 }
 
 export type CreateRecurringBookingResult =
@@ -26,6 +26,7 @@ export async function createRecurringBooking(params: CreateRecurringBookingParam
     phone: params.phone.trim(), band: params.bandName.trim(), equipment_ids: [...new Set(params.equipmentIds ?? [])],
     occurrence_count: params.occurrenceCount,
     occurrences: dates.map(date => ({ date, start_at: `${date}T${params.start}:00+08:00`, end_at: `${date}T${params.end}:00+08:00` })),
+    voucher_code: params.voucherCode?.trim() || null,
   }
   const supabase = createServiceClient()
   const { data, error } = await supabase.rpc('create_customer_reservations', { p_request: request })
@@ -35,6 +36,10 @@ export async function createRecurringBooking(params: CreateRecurringBookingParam
       return { success: false, error: 'One or more occurrences are unavailable. Please choose another time.' }
     }
     if (/equipment_unavailable/i.test(message)) return { success: false, error: 'Requested equipment is unavailable for one or more occurrences.' }
+    if (/voucher_exhausted/i.test(message)) return { success: false, error: 'That voucher does not have enough uses left for this many weeks.' }
+    if (/voucher_not_found|voucher_disabled|voucher_not_yet_valid|voucher_expired|voucher_service_ineligible|voucher_date_out_of_range|voucher_min_spend_not_met|voucher_customer_limit_reached/i.test(message)) {
+      return { success: false, error: 'That voucher code is not valid for this booking.' }
+    }
     console.error('[createRecurringBooking] atomic reservation failed', error)
     return { success: false, error: 'Something went wrong. Please try again.' }
   }

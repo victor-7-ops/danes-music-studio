@@ -67,9 +67,9 @@ async function listExternalEvents(
  * Filters out DMS-owned events, detects conflicts with confirmed bookings,
  * upserts blocked_slots for external events, and deletes rows for cancelled events.
  */
-export async function runPullSync(): Promise<{ inserted: number; deleted: number; conflicts: number }> {
+export async function runPullSync(): Promise<{ inserted: number; deleted: number; conflicts: number; skipped: number }> {
   const client = await getGcalClient()
-  if (!client) return { inserted: 0, deleted: 0, conflicts: 0 }
+  if (!client) return { inserted: 0, deleted: 0, conflicts: 0, skipped: 0 }
 
   const { oauth2Client, calendarId, googleTokensRow } = client
   const calendar = google.calendar({ version: 'v3', auth: oauth2Client })
@@ -101,55 +101,71 @@ export async function runPullSync(): Promise<{ inserted: number; deleted: number
   let inserted = 0
   let deleted = 0
   let conflicts = 0
+  let skipped = 0
 
   for (const e of external) {
-    if (e.status === 'cancelled') {
-      // Remove blocked_slot for cancelled GCal event
-      const { error } = await db
+    try {
+      if (e.status === 'cancelled') {
+        // Remove blocked_slot for cancelled GCal event
+        const { error } = await db
+          .from('blocked_slots')
+          .delete()
+          .eq('external_id', e.id)
+        if (error) throw error
+        deleted++
+        continue
+      }
+
+      const startAt = e.start?.dateTime ?? (e.start?.date ? `${e.start.date}T00:00:00+08:00` : null)
+      const endAt = e.end?.dateTime ?? (e.end?.date ? `${e.end.date}T00:00:00+08:00` : null)
+      if (!e.id || !startAt || !endAt || !Number.isFinite(Date.parse(startAt)) || !Number.isFinite(Date.parse(endAt)) || Date.parse(startAt) >= Date.parse(endAt)) {
+        throw new Error('Calendar event has an invalid time range')
+      }
+
+      // Google all-day dates use an exclusive end; studio blocks use Manila
+      // time. Pending (held, not-yet-paid) bookings count as conflicts too —
+      // an externally-created event overlapping an active hold is still a
+      // real double-booking risk, not just a cosmetic gap in coverage.
+      const { data: conflictRows, error: conflictError } = await db
+        .from('bookings')
+        .select('id, confirmation_code')
+        .in('status', ['confirmed', 'pending'])
+        .lt('start_at', endAt)
+        .gt('end_at', startAt)
+      if (conflictError) throw conflictError
+
+      if (conflictRows && conflictRows.length > 0) {
+        console.error('[gcal:pull] conflict skipped', { gcalEventId: e.id, conflicts: conflictRows })
+        conflicts++
+        continue
+      }
+
+      // Upsert blocked_slot for this external GCal event
+      const { error: writeError } = await db
         .from('blocked_slots')
-        .delete()
-        .eq('external_id', e.id)
-      if (error) throw error
-      deleted++
-      continue
+        .upsert(
+          {
+            type: 'gcal',
+            external_id: e.id,
+            start_at: startAt,
+            end_at: endAt,
+            reason: e.summary ?? 'GCal event',
+          },
+          { onConflict: 'external_id' }
+        )
+      if (writeError) throw writeError
+      inserted++
+    } catch (err) {
+      // One malformed/failing event must never block the sync_token update
+      // below, or every retry re-fetches the same bad event from the old
+      // token and the whole sync stalls forever.
+      console.error('[gcal:pull] skipping event after error', { gcalEventId: e.id, err })
+      skipped++
     }
+  }
 
-    const startAt = e.start?.dateTime ?? (e.start?.date ? `${e.start.date}T00:00:00+08:00` : null)
-    const endAt = e.end?.dateTime ?? (e.end?.date ? `${e.end.date}T00:00:00+08:00` : null)
-    if (!e.id || !startAt || !endAt || !Number.isFinite(Date.parse(startAt)) || !Number.isFinite(Date.parse(endAt)) || Date.parse(startAt) >= Date.parse(endAt)) {
-      throw new Error('Calendar event has an invalid time range')
-    }
-
-    // Google all-day dates use an exclusive end; studio blocks use Manila time.
-    const { data: conflictRows, error: conflictError } = await db
-      .from('bookings')
-      .select('id, confirmation_code')
-      .eq('status', 'confirmed')
-      .lt('start_at', endAt)
-      .gt('end_at', startAt)
-    if (conflictError) throw conflictError
-
-    if (conflictRows && conflictRows.length > 0) {
-      console.error('[gcal:pull] conflict skipped', { gcalEventId: e.id, conflicts: conflictRows })
-      conflicts++
-      continue
-    }
-
-    // Upsert blocked_slot for this external GCal event
-    const { error: writeError } = await db
-      .from('blocked_slots')
-      .upsert(
-        {
-          type: 'gcal',
-          external_id: e.id,
-          start_at: startAt,
-          end_at: endAt,
-          reason: e.summary ?? 'GCal event',
-        },
-        { onConflict: 'external_id' }
-      )
-    if (writeError) throw writeError
-    inserted++
+  if (skipped > 0) {
+    console.error(`[gcal:pull] ${skipped} event(s) skipped due to errors — review logs`)
   }
 
   // Persist the new syncToken for the next incremental sync
@@ -159,5 +175,5 @@ export async function runPullSync(): Promise<{ inserted: number; deleted: number
     .eq('id', googleTokensRow.id)
   if (tokenError) throw tokenError
 
-  return { inserted, deleted, conflicts }
+  return { inserted, deleted, conflicts, skipped }
 }

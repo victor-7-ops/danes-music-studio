@@ -62,14 +62,16 @@ export default async function SeriesConfirmPage({ searchParams }: PageProps) {
             </span>
             <div className="flex flex-col items-end">
             <span className="font-sans text-xs text-muted">{formatManila(sessions[i]!.start_at, 'date')} · {sessions[i]!.status}</span>
-            <span className="font-sans text-xs text-muted">{formatPHP(sessions[i]!.payment_method === 'deposit' ? sessions[i]!.deposit_amount : sessions[i]!.total_amount)} due</span>
+            <span className="font-sans text-xs text-muted">
+              {sessions[i]!.total_amount === 0 ? 'No payment required' : `${formatPHP(sessions[i]!.payment_method === 'deposit' ? sessions[i]!.deposit_amount : sessions[i]!.total_amount)} due`}
+            </span>
             {sessions[i]!.status === 'pending' && !sessions[i]!.payment_proof_url && (!sessions[i]!.hold_expires_at || sessions[i]!.hold_expires_at > now) ? <Link
               href={`/book/pay?code=${code}&token=${tokens[i]}`}
               className="font-display text-lg text-ink tracking-widest hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
             >
               {code}
             </Link>
-            : <span className="font-sans text-xs text-muted">{sessions[i]!.payment_proof_url ? 'Proof submitted' : sessions[i]!.status === 'pending' ? 'Hold expired' : 'Unavailable'}</span>}
+            : <span className="font-sans text-xs text-muted">{sessions[i]!.status === 'confirmed' ? 'Confirmed' : sessions[i]!.payment_proof_url ? 'Proof submitted' : sessions[i]!.status === 'pending' ? 'Hold expired' : 'Unavailable'}</span>}
             </div>
           </div>
         ))}

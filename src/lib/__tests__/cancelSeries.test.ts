@@ -53,9 +53,9 @@ describe('cancelSeries', () => {
       bookings: [
         { data: seriesBookings, error: null }, // cancelSeries's lookup
         { data: b1Full, error: null }, // cancelBooking(b1) fetch
-        { data: null, error: null }, // cancelBooking(b1) update
+        { data: { id: 'b1' }, error: null }, // cancelBooking(b1) update
         { data: b2Full, error: null }, // cancelBooking(b2) fetch
-        { data: null, error: null }, // cancelBooking(b2) update
+        { data: { id: 'b2' }, error: null }, // cancelBooking(b2) update
       ],
     })
     vi.mocked(createClient).mockResolvedValue(client as never)
@@ -112,7 +112,7 @@ describe('cancelSeries', () => {
     const client = makeMockClient({ bookings: [
       { data: [{ id: 'b1', status: 'confirmed', confirmation_code: 'DMS-AFFECTED' }, { id: 'b2', status: 'pending', confirmation_code: 'DMS-B' }], error: null },
       { data: booking, error: null },
-      { data: null, error: null },
+      { data: { id: 'b1' }, error: null },
       { data: { ...booking, id: 'b2', status: 'pending' }, error: null },
       { data: null, error: { message: 'Database unavailable' } },
     ] })

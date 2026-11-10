@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { quoteVoucher } from '@/lib/actions/voucherQuote'
 
 interface EquipmentOption {
   id: string
@@ -32,6 +33,13 @@ function formatCents(cents: number): string {
   return `₱${(cents / 100).toLocaleString('en-PH')}`
 }
 
+function formatHH(hhmm: string): string {
+  const h = parseInt(hhmm)
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  const h12 = h > 12 ? h - 12 : h === 0 ? 12 : h
+  return `${h12}:00 ${ampm}`
+}
+
 export default function DetailsForm({ date, start, end, payment, service, rateCents, depositPct, equipment, initialEquipmentIds, unavailableEquipmentIds }: DetailsFormProps) {
   const router = useRouter()
 
@@ -45,6 +53,10 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
     new Set((initialEquipmentIds ?? []).filter((id) => !unavailableIds.has(id)))
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
+
+  const [voucherCode, setVoucherCode] = useState('')
+  const [voucherQuote, setVoucherQuote] = useState<{ valid: boolean; discountCents?: number } | null>(null)
+  const voucherTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   // "Book again" suggestion — debounced lookup once both email and phone are
   // filled in. See plans/012b-quick-rebook-v2.md. Silent on any failure
@@ -113,9 +125,36 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
   const equipmentCents = equipment
     .filter((item) => selectedEquipment.has(item.id))
     .reduce((sum, item) => sum + item.price_per_session, 0)
-  const totalCents = studioCents + equipmentCents
+  const discountCents = voucherQuote?.valid ? Math.min(voucherQuote.discountCents ?? 0, studioCents) : 0
+  const totalCents = studioCents - discountCents + equipmentCents
   const depositCents = Math.floor(totalCents * depositPct)
   const amountDue = payment === 'full' ? totalCents : depositCents
+
+  // Live estimate only — server recomputes and reserves the discount atomically.
+  useEffect(() => {
+    const trimmedCode = voucherCode.trim()
+    const trimmedEmail = email.trim()
+    if (voucherTimer.current) clearTimeout(voucherTimer.current)
+    if (!trimmedCode || !trimmedEmail) {
+      setVoucherQuote(null)
+      return
+    }
+    voucherTimer.current = setTimeout(() => {
+      quoteVoucher({
+        code: trimmedCode,
+        service,
+        sessionDate: date,
+        studioSubtotalCents: studioCents,
+        equipmentSubtotalCents: equipmentCents,
+        email: trimmedEmail,
+      })
+        .then(setVoucherQuote)
+        .catch(() => setVoucherQuote({ valid: false }))
+    }, 500)
+    return () => {
+      if (voucherTimer.current) clearTimeout(voucherTimer.current)
+    }
+  }, [voucherCode, email, service, date, studioCents, equipmentCents])
 
   function toggleEquipment(id: string) {
     setSelectedEquipment((prev) => {
@@ -154,9 +193,10 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
     }
 
     const equipmentParam = selectedEquipment.size > 0 ? [...selectedEquipment].join(',') : ''
+    const voucherParam = voucherQuote?.valid ? `&voucher=${encodeURIComponent(voucherCode.trim())}` : ''
 
     router.push(
-      `/book/review?service=${service}&date=${date}&start=${start}&end=${end}&payment=${payment}&name=${encodeURIComponent(contactName.trim())}&email=${encodeURIComponent(email.trim())}&phone=${encodeURIComponent(phone.trim())}&band=${encodeURIComponent(bandName.trim())}&equipment=${equipmentParam}`
+      `/book/review?service=${service}&date=${date}&start=${start}&end=${end}&payment=${payment}&name=${encodeURIComponent(contactName.trim())}&email=${encodeURIComponent(email.trim())}&phone=${encodeURIComponent(phone.trim())}&band=${encodeURIComponent(bandName.trim())}&equipment=${equipmentParam}${voucherParam}`
     )
   }
 
@@ -178,7 +218,7 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
       <div className="border border-border bg-surface p-4 mb-8 space-y-1">
         <p className="font-sans text-sm text-muted">{formattedDate}</p>
         <p className="font-sans text-sm text-ink">
-          {start} – {end} &nbsp;·&nbsp; {hours} hour{hours !== 1 ? 's' : ''}
+          {formatHH(start)} – {formatHH(end)} &nbsp;·&nbsp; {hours} hour{hours !== 1 ? 's' : ''}
         </p>
         <p className="font-sans text-sm font-semibold text-ink">
           Amount due: {formatCents(amountDue)}
@@ -222,6 +262,32 @@ export default function DetailsForm({ date, start, end, payment, service, rateCe
           </div>
         </div>
       )}
+
+      {/* Voucher code — optional */}
+      <div className="mb-8">
+        <label htmlFor="voucherCode" className={labelClass}>
+          Voucher Code (optional)
+        </label>
+        <input
+          id="voucherCode"
+          type="text"
+          value={voucherCode}
+          onChange={e => setVoucherCode(e.target.value.toUpperCase())}
+          placeholder="Enter email above first"
+          className={inputClass}
+        />
+        {voucherCode.trim() && (
+          <p className="font-sans text-xs mt-1" aria-live="polite">
+            {!email.trim()
+              ? <span className="text-muted">Enter your email to check this code.</span>
+              : voucherQuote === null
+                ? <span className="text-muted">Checking…</span>
+                : voucherQuote.valid
+                  ? <span className="text-ink">Estimated discount: {formatCents(voucherQuote.discountCents ?? 0)} — server confirms the final total.</span>
+                  : <span className="text-red-600">Code not valid for this booking.</span>}
+          </p>
+        )}
+      </div>
 
       <form onSubmit={handleSubmit} noValidate className="space-y-5">
         {/* Band / Artist Name — optional */}

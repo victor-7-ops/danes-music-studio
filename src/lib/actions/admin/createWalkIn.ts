@@ -3,7 +3,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { pushGcalEvent } from '@/lib/gcal/pushSync'
 import { SERVICES, isServiceSlug, type ServiceSlug } from '@/lib/services'
-import { createConfirmationCode } from '@/lib/confirmationCode'
 
 export interface CreateWalkInParams {
   date: string      // "YYYY-MM-DD"
@@ -11,6 +10,8 @@ export interface CreateWalkInParams {
   end: string       // "HH:MM" 24h Manila
   bandName?: string
   service?: ServiceSlug   // defaults to rehearsal
+  equipmentIds?: string[]
+  voucherCode?: string
 }
 
 export async function createWalkIn(
@@ -22,94 +23,47 @@ export async function createWalkIn(
   } = await supabase.auth.getUser()
   if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
-  const { date, start, end, bandName } = params
-  const service: ServiceSlug =
-    params.service && isServiceSlug(params.service) ? params.service : 'rehearsal'
+  const service: ServiceSlug = params.service && isServiceSlug(params.service) ? params.service : 'rehearsal'
 
-  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(date)
-  const startOk = /^(?:[01]\d|2[0-3]):00$/.test(start)
-  const endOk = /^(?:[01]\d|2[0-3]|24):00$/.test(end)
-  const startHour = parseInt(start.split(':')[0])
-  const endHour = parseInt(end.split(':')[0])
+  const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(params.date)
+  const startOk = /^(?:[01]\d|2[0-3]):00$/.test(params.start)
+  const endOk = /^(?:[01]\d|2[0-3]|24):00$/.test(params.end)
+  const startHour = parseInt(params.start.split(':')[0])
+  const endHour = parseInt(params.end.split(':')[0])
   const hoursOk = endHour > startHour
-
   if (!dateOk || !startOk || !endOk || !hoursOk) {
     return { success: false, error: 'Invalid parameters.' }
   }
 
-  const start_at = `${date}T${start}:00+08:00`
-  const end_at = `${date}T${end}:00+08:00`
+  const { data, error } = await supabase.rpc('create_admin_booking', {
+    p_request: {
+      mode: 'walk_in',
+      date: params.date,
+      start: params.start,
+      end: params.end,
+      service: SERVICES[service].name,
+      customer_name: params.bandName?.trim() || 'Walk-in',
+      customer_email: '',
+      customer_phone: '',
+      band_name: params.bandName?.trim() || null,
+      equipment_ids: [...new Set(params.equipmentIds ?? [])],
+      voucher_code: params.voucherCode?.trim() || null,
+    },
+  })
 
-  // App-level overlap check: gives a friendly error message before hitting the
-  // DB constraint. It only checks pending/confirmed statuses, not completed
-  // walk-ins — that's intentional. The real race-safe backstop is the
-  // bookings_no_overlap EXCLUDE constraint (see
-  // supabase/migrations/20260015000000_9_1_overlap_include_completed.sql),
-  // which covers all non-cancelled statuses including completed and is
-  // enforced atomically by Postgres, closing the TOCTOU gap this SELECT-then-
-  // INSERT check can't close on its own. The catch block below (insertError
-  // handling) is what actually prevents a double-booking under concurrency.
-  const { data: conflicts, error: overlapError } = await supabase
-    .from('bookings')
-    .select('id')
-    .in('status', ['pending', 'confirmed'])
-    .lt('start_at', end_at)
-    .gt('end_at', start_at)
-
-  if (overlapError) return { success: false, error: overlapError.message }
-  if (conflicts && conflicts.length > 0) {
-    return { success: false, error: 'Time slot overlaps an existing booking.' }
+  if (error || !data) {
+    const message = error?.message ?? ''
+    if (/bookings_no_overlap/i.test(message)) return { success: false, error: 'Time slot overlaps an existing booking.' }
+    if (/equipment_unavailable/i.test(message)) return { success: false, error: 'Requested equipment is unavailable for the selected time.' }
+    if (/voucher_/i.test(message)) return { success: false, error: 'That voucher code is not valid for this booking.' }
+    if (/invalid_booking_parameters/i.test(message)) return { success: false, error: 'Invalid parameters.' }
+    return { success: false, error: message || 'Something went wrong.' }
   }
 
-  const { data: serviceType, error: serviceError } = await supabase
-    .from('service_types')
-    .select('id, rate_per_hour, deposit_pct')
-    .eq('name', SERVICES[service].name)
-    .single()
+  const result = data as { id: string; code: string; status: string }
+  await pushGcalEvent(result.id).catch((err: unknown) => {
+    console.error('[gcal:push] createWalkIn failed', err)
+  })
 
-  if (serviceError || !serviceType) {
-    return { success: false, error: 'Service configuration error.' }
-  }
-
-  const hours = endHour - startHour
-  const total_amount = hours * serviceType.rate_per_hour
-  const deposit_amount = Math.floor(total_amount * serviceType.deposit_pct)
-
-  const code = createConfirmationCode()
-
-  const { data: inserted, error: insertError } = await supabase.from('bookings').insert({
-    confirmation_code: code,
-    customer_name: bandName?.trim() || 'Walk-in',
-    customer_email: '',
-    customer_phone: '',
-    band_name: bandName?.trim() || null,
-    start_at,
-    end_at,
-    service_type_id: serviceType.id,
-    status: 'completed',
-    source: 'walk_in',
-    hold_expires_at: null,
-    total_amount,
-    deposit_amount,
-    amount_paid: total_amount,
-    payment_method: 'none',
-  }).select('id').single()
-
-  if (insertError) {
-    if (
-      insertError.message.includes('bookings_no_overlap') ||
-      insertError.message.includes('exclusion constraint')
-    ) {
-      return { success: false, error: 'Time slot overlaps an existing booking.' }
-    }
-    return { success: false, error: insertError.message }
-  }
-
-  if (inserted?.id) {
-    await pushGcalEvent(inserted.id as string).catch((err: unknown) => {
-      console.error('[gcal:push] createWalkIn failed', err)
-    })
-  }
-
-  return { success: true, code }
+  return { success: true, code: result.code }
 }

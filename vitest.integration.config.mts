@@ -13,6 +13,7 @@ export default defineConfig({
       'src/lib/__tests__/bookings.test.ts',
       'src/lib/__tests__/equipmentReserve.integration.test.ts',
       'src/lib/__tests__/reservations.integration.test.ts',
+      'src/lib/__tests__/voucher.integration.test.ts',
     ],
   },
 })

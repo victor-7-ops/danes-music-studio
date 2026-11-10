@@ -21,22 +21,23 @@ describe.each([['cancel', cancel], ['reschedule', reschedule]] as const)('%s boo
     await route.GET(new NextRequest(`https://studio.example/api/booking/${name}?token=test`))
     expect(db.from.mock.results[0].value.update).not.toHaveBeenCalled()
   })
-  it('reports an update failure and leaves Calendar untouched', async () => {
+  it('reports a lost update race and leaves Calendar untouched', async () => {
     const db = makeMockClient({ bookings: [
-      { data: { id: 'id', status: 'confirmed', start_at: '2099-01-01', gcal_event_id: 'event' }, error: null },
+      { data: { id: 'id', confirmation_code: 'TEST', status: 'confirmed', start_at: '2099-01-01', gcal_event_id: 'event' }, error: null },
       { data: null, error: { message: 'database unavailable' } },
     ] })
     vi.mocked(createServiceClient).mockReturnValue(db as never)
     const body = new FormData()
     body.set('token', 'test')
     const response = await route.POST(new NextRequest(`https://studio.example/api/booking/${name}`, { method: 'POST', body }))
-    expect(response.status).toBe(503)
+    expect(response.status).toBe(303)
+    expect(response.headers.get('location')).toContain('error=already_cancelled')
     expect(deleteGcalEvent).not.toHaveBeenCalled()
   })
   it('redirects POST to a GET page only after Calendar removal finishes', async () => {
     const db = makeMockClient({ bookings: [
       { data: { id: 'id', confirmation_code: 'TEST', status: 'confirmed', start_at: '2099-01-01', gcal_event_id: 'event' }, error: null },
-      { data: null, error: null },
+      { data: { id: 'id' }, error: null },
     ] })
     vi.mocked(createServiceClient).mockReturnValue(db as never)
     let removed = false

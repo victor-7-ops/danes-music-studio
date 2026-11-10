@@ -5,36 +5,12 @@ export type Json =
   | null
   | { [key: string]: Json | undefined }
   | Json[]
+
 export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.5"
-  }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
   }
   public: {
     Tables: {
@@ -107,6 +83,27 @@ export type Database = {
           },
         ]
       }
+      booking_series: {
+        Row: {
+          created_at: string
+          id: string
+          occurrence_count: number
+          recurrence_pattern: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          occurrence_count: number
+          recurrence_pattern?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          occurrence_count?: number
+          recurrence_pattern?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           amount_paid: number
@@ -126,16 +123,20 @@ export type Database = {
           payment_method: Database["public"]["Enums"]["payment_method_type"]
           payment_proof_url: string | null
           payment_status: Database["public"]["Enums"]["payment_status"]
-          reminder_sent: boolean
-          reminder_claimed_at: string | null
           reminder_attempts: number
+          reminder_claimed_at: string | null
+          reminder_sent: boolean
           reschedule_from: string | null
+          series_id: string | null
           service_type_id: string
           source: Database["public"]["Enums"]["booking_source"]
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
           total_amount: number
           updated_at: string
+          voucher_code_snapshot: string | null
+          voucher_discount_centavos: number
+          voucher_id: string | null
         }
         Insert: {
           amount_paid?: number
@@ -155,16 +156,20 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method_type"]
           payment_proof_url?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
-          reminder_sent?: boolean
-          reminder_claimed_at?: string | null
           reminder_attempts?: number
+          reminder_claimed_at?: string | null
+          reminder_sent?: boolean
           reschedule_from?: string | null
+          series_id?: string | null
           service_type_id: string
           source?: Database["public"]["Enums"]["booking_source"]
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount: number
           updated_at?: string
+          voucher_code_snapshot?: string | null
+          voucher_discount_centavos?: number
+          voucher_id?: string | null
         }
         Update: {
           amount_paid?: number
@@ -184,16 +189,20 @@ export type Database = {
           payment_method?: Database["public"]["Enums"]["payment_method_type"]
           payment_proof_url?: string | null
           payment_status?: Database["public"]["Enums"]["payment_status"]
-          reminder_sent?: boolean
-          reminder_claimed_at?: string | null
           reminder_attempts?: number
+          reminder_claimed_at?: string | null
+          reminder_sent?: boolean
           reschedule_from?: string | null
+          series_id?: string | null
           service_type_id?: string
           source?: Database["public"]["Enums"]["booking_source"]
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
           total_amount?: number
           updated_at?: string
+          voucher_code_snapshot?: string | null
+          voucher_discount_centavos?: number
+          voucher_id?: string | null
         }
         Relationships: [
           {
@@ -204,10 +213,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "bookings_series_id_fkey"
+            columns: ["series_id"]
+            isOneToOne: false
+            referencedRelation: "booking_series"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "bookings_service_type_id_fkey"
             columns: ["service_type_id"]
             isOneToOne: false
             referencedRelation: "service_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
             referencedColumns: ["id"]
           },
         ]
@@ -421,43 +444,235 @@ export type Database = {
         }
         Relationships: []
       }
+      voucher_redemptions: {
+        Row: {
+          booking_id: string
+          created_at: string
+          customer_email_normalized: string
+          discount_centavos: number
+          equipment_subtotal_centavos: number
+          id: string
+          percent_snapshot: number
+          state: string
+          studio_subtotal_centavos: number
+          updated_at: string
+          voucher_id: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          customer_email_normalized: string
+          discount_centavos: number
+          equipment_subtotal_centavos: number
+          id?: string
+          percent_snapshot: number
+          state: string
+          studio_subtotal_centavos: number
+          updated_at?: string
+          voucher_id: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          customer_email_normalized?: string
+          discount_centavos?: number
+          equipment_subtotal_centavos?: number
+          id?: string
+          percent_snapshot?: number
+          state?: string
+          studio_subtotal_centavos?: number
+          updated_at?: string
+          voucher_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voucher_redemptions_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "voucher_redemptions_voucher_id_fkey"
+            columns: ["voucher_id"]
+            isOneToOne: false
+            referencedRelation: "vouchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vouchers: {
+        Row: {
+          booking_date_end: string | null
+          booking_date_start: string | null
+          code: string
+          created_at: string
+          eligible_service_ids: string[] | null
+          enabled: boolean
+          expires_at: string | null
+          id: string
+          max_discount_centavos: number | null
+          max_redemptions: number | null
+          min_studio_subtotal_centavos: number | null
+          per_customer_limit: number | null
+          percent: number
+          redemptions_used: number
+          starts_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          booking_date_end?: string | null
+          booking_date_start?: string | null
+          code: string
+          created_at?: string
+          eligible_service_ids?: string[] | null
+          enabled?: boolean
+          expires_at?: string | null
+          id?: string
+          max_discount_centavos?: number | null
+          max_redemptions?: number | null
+          min_studio_subtotal_centavos?: number | null
+          per_customer_limit?: number | null
+          percent: number
+          redemptions_used?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          booking_date_end?: string | null
+          booking_date_start?: string | null
+          code?: string
+          created_at?: string
+          eligible_service_ids?: string[] | null
+          enabled?: boolean
+          expires_at?: string | null
+          id?: string
+          max_discount_centavos?: number | null
+          max_redemptions?: number | null
+          min_studio_subtotal_centavos?: number | null
+          per_customer_limit?: number | null
+          percent?: number
+          redemptions_used?: number
+          starts_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      update_studio_settings: {
-        Args: { p_settings: Json }
+      claim_booking_reminders: {
+        Args: { p_end: string; p_start: string }
+        Returns: {
+          amount_paid: number
+          band_name: string | null
+          cancel_token: string
+          confirmation_code: string
+          created_at: string
+          customer_email: string
+          customer_name: string
+          customer_phone: string
+          deposit_amount: number
+          end_at: string
+          gcal_event_id: string | null
+          hold_expires_at: string | null
+          id: string
+          notes: string | null
+          payment_method: Database["public"]["Enums"]["payment_method_type"]
+          payment_proof_url: string | null
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          reminder_attempts: number
+          reminder_claimed_at: string | null
+          reminder_sent: boolean
+          reschedule_from: string | null
+          series_id: string | null
+          service_type_id: string
+          source: Database["public"]["Enums"]["booking_source"]
+          start_at: string
+          status: Database["public"]["Enums"]["booking_status"]
+          total_amount: number
+          updated_at: string
+          voucher_code_snapshot: string | null
+          voucher_discount_centavos: number
+          voucher_id: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      compute_voucher_discount: {
+        Args: { p_max_discount: number; p_percent: number; p_subtotal: number }
+        Returns: number
+      }
+      consume_voucher_redemption: {
+        Args: { p_booking_id: string }
+        Returns: undefined
+      }
+      create_admin_booking: { Args: { p_request: Json }; Returns: Json }
+      create_admin_closure: {
+        Args: {
+          p_end_at: string
+          p_force?: boolean
+          p_reason: string
+          p_start_at: string
+        }
+        Returns: Json
+      }
+      create_customer_reservations: { Args: { p_request: Json }; Returns: Json }
+      generate_confirmation_code: {
+        Args: { p_service: string }
+        Returns: string
+      }
+      is_studio_admin: { Args: never; Returns: boolean }
+      preview_voucher_discount: {
+        Args: {
+          p_code: string
+          p_email: string
+          p_equipment_subtotal: number
+          p_service_id: string
+          p_session_date: string
+          p_studio_subtotal: number
+        }
+        Returns: Json
+      }
+      release_voucher_redemption: {
+        Args: { p_booking_id: string }
         Returns: undefined
       }
       replace_google_connection: {
         Args: { p_encrypted_token: string; p_google_email: string }
         Returns: undefined
       }
-      create_customer_reservations: {
-        Args: { p_request: Json }
-        Returns: Json
-      }
-      create_admin_closure: {
-        Args: { p_start_at: string; p_end_at: string; p_reason: string | null; p_force?: boolean }
-        Returns: Json
-      }
-      claim_booking_reminders: {
-        Args: { p_start: string; p_end: string }
-        Returns: Database["public"]["Tables"]["bookings"]["Row"][]
-      }
-      is_studio_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       reserve_equipment: {
         Args: {
           p_booking_id: string
-          p_start_at: string
           p_end_at: string
           p_items: Json
+          p_start_at: string
         }
         Returns: {
           unavailable_id: string
           unavailable_name: string
         }[]
+      }
+      update_studio_settings: { Args: { p_settings: Json }; Returns: undefined }
+      upsert_voucher: { Args: { p_voucher: Json }; Returns: string }
+      validate_and_reserve_voucher: {
+        Args: {
+          p_booking_id: string
+          p_code: string
+          p_email: string
+          p_equipment_subtotal: number
+          p_service_id: string
+          p_session_date: string
+          p_studio_subtotal: number
+        }
+        Returns: number
       }
     }
     Enums: {
@@ -471,18 +686,21 @@ export type Database = {
     }
   }
 }
+
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
 type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -501,15 +719,16 @@ export type Tables<
       ? R
       : never
     : never
+
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -525,15 +744,16 @@ export type TablesInsert<
       ? I
       : never
     : never
+
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -549,15 +769,16 @@ export type TablesUpdate<
       ? U
       : never
     : never
+
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -565,15 +786,16 @@ export type Enums<
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
     : never
+
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -581,10 +803,8 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
     : never
+
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {
       booking_source: ["online", "onsite", "walk_in"],

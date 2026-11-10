@@ -21,13 +21,17 @@ export async function cancelBooking(
 
   if (fetchError || !booking) return { success: false, error: 'Booking not found' }
   if (booking.status === 'cancelled') return { success: false, error: 'Already cancelled' }
+  if (booking.status === 'completed') return { success: false, error: 'Cannot cancel a completed booking' }
 
-  const { error: updateError } = await supabase
+  const { data: updated, error: updateError } = await supabase
     .from('bookings')
     .update({ status: 'cancelled' })
     .eq('id', bookingId)
+    .eq('status', booking.status)
+    .select('id')
+    .single()
 
-  if (updateError) return { success: false, error: updateError.message }
+  if (updateError || !updated) return { success: false, error: 'Booking state has changed. Refresh and try again.' }
 
   const warnings: string[] = []
   // D-07: email only for confirmed cancels; pending cancels are silent

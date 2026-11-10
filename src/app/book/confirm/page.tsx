@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { DmsHero } from '@/components/DmsHero'
-import { formatManila } from '@/lib/emails/format'
+import { formatManila, formatPHP } from '@/lib/emails/format'
 
 interface PageProps {
   searchParams: Promise<{
@@ -26,7 +26,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
   const supabase = createServiceClient()
   const { data: booking } = await supabase
     .from('bookings')
-    .select('status, confirmation_code, hold_expires_at, total_amount, deposit_amount, payment_method, start_at, end_at, band_name, customer_name, payment_proof_url')
+    .select('status, confirmation_code, hold_expires_at, total_amount, deposit_amount, payment_method, start_at, end_at, band_name, customer_name, payment_proof_url, voucher_code_snapshot, voucher_discount_centavos')
     .eq('confirmation_code', code)
     .eq('cancel_token', token)
     .single()
@@ -49,7 +49,17 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
           Your slot is locked in. See you at the studio.
         </p>
 
-        <div className="font-display text-4xl text-ink tracking-widest mb-8">
+        {booking.voucher_code_snapshot && booking.voucher_discount_centavos > 0 && (
+          <p className="font-sans text-sm text-muted mb-4">
+            Voucher {booking.voucher_code_snapshot} applied: -{formatPHP(booking.voucher_discount_centavos)}
+          </p>
+        )}
+
+        {booking.total_amount === 0 && booking.payment_method === 'none' ? (
+          <p className="font-sans text-sm text-ink mb-8">No payment required.</p>
+        ) : null}
+
+        <div className="font-display text-3xl sm:text-4xl text-ink tracking-widest mb-8 break-all px-4">
           {booking.confirmation_code}
         </div>
 
@@ -84,7 +94,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
           Your slot is still held. Try again before time runs out.
         </p>
 
-        <div className="font-display text-4xl text-ink tracking-widest mb-8">
+        <div className="font-display text-3xl sm:text-4xl text-ink tracking-widest mb-8 break-all px-4">
           {booking.confirmation_code}
         </div>
 
@@ -121,7 +131,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
           We&apos;re reviewing your payment. You&apos;ll get a confirmation email once it&apos;s verified.
         </p>
 
-        <div className="font-display text-4xl text-ink tracking-widest mb-8">
+        <div className="font-display text-3xl sm:text-4xl text-ink tracking-widest mb-8 break-all px-4">
           {booking.confirmation_code}
         </div>
 
@@ -147,7 +157,7 @@ export default async function ConfirmPage({ searchParams }: PageProps) {
         Your rehearsal slot is reserved.
       </p>
 
-      <div className="font-display text-4xl text-ink tracking-widest mb-8">
+      <div className="font-display text-3xl sm:text-4xl text-ink tracking-widest mb-8 break-all px-4">
         {code}
       </div>
 

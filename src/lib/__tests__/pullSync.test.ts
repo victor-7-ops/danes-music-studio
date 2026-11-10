@@ -19,10 +19,12 @@ function setup(item: object, writeError: object | null = null, conflictError: ob
   vi.mocked(createServiceClient).mockReturnValue(db as never)
   return { db, list }
 }
-it('does not advance the token on a failed blocked-slot write', async () => {
+it('skips a failed blocked-slot write but still advances the token', async () => {
   const { db } = setup(event, { message: 'database unavailable' })
-  await expect(runPullSync()).rejects.toEqual({ message: 'database unavailable' })
-  expect(db.from.mock.calls.some(([table]) => table === 'google_tokens')).toBe(false)
+  const result = await runPullSync()
+  expect(result.inserted).toBe(0)
+  expect(result.skipped).toBe(1)
+  expect(db.from.mock.calls.some(([table]) => table === 'google_tokens')).toBe(true)
 })
 it('normalizes all-day dates to an exclusive Manila interval', async () => {
   const { db } = setup({ id: 'all-day', start: { date: '2030-01-01' }, end: { date: '2030-01-02' } })
@@ -39,15 +41,19 @@ it('uses half-open overlap boundaries so touching events do not conflict', async
   expect(query.lte).not.toHaveBeenCalled()
   expect(query.gte).not.toHaveBeenCalled()
 })
-it('does not advance after a failed deletion', async () => {
+it('skips a failed deletion but still advances the token', async () => {
   const { db } = setup({ id: 'deleted', status: 'cancelled' }, { message: 'delete failed' })
-  await expect(runPullSync()).rejects.toEqual({ message: 'delete failed' })
-  expect(db.from).toHaveBeenCalledTimes(1)
+  const result = await runPullSync()
+  expect(result.deleted).toBe(0)
+  expect(result.skipped).toBe(1)
+  expect(db.from.mock.calls.some(([table]) => table === 'google_tokens')).toBe(true)
 })
-it('does not write blocks or advance after a failed conflict query', async () => {
+it('skips a failed conflict query but still advances the token', async () => {
   const { db } = setup(event, null, { message: 'query failed' })
-  await expect(runPullSync()).rejects.toEqual({ message: 'query failed' })
-  expect(db.from).toHaveBeenCalledTimes(1)
+  const result = await runPullSync()
+  expect(result.inserted).toBe(0)
+  expect(result.skipped).toBe(1)
+  expect(db.from.mock.calls.some(([table]) => table === 'google_tokens')).toBe(true)
 })
 it('reports a failed checkpoint save instead of claiming success', async () => {
   setup(event, null, null, { message: 'token save failed' })
