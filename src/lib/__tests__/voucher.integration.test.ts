@@ -19,29 +19,29 @@ const skipIntegration = !url || !serviceKey
 const voucherIds: string[] = []
 const customerNames: string[] = []
 
-async function cleanup(db: ReturnType<typeof createClient>) {
-  // voucher_redemptions.booking_id and .voucher_id have no ON DELETE CASCADE
-  // (NO ACTION) — redemption rows must go first, or deleting the booking/
-  // voucher silently fails on the FK and leaves both behind.
-  if (voucherIds.length) {
-    await db.from('voucher_redemptions').delete().in('voucher_id', voucherIds)
-  }
-  if (customerNames.length) {
-    const { error } = await db.from('bookings').delete().in('customer_name', customerNames)
-    if (error) console.error('[voucher.integration.test cleanup] bookings delete failed', error)
-  }
-  if (voucherIds.length) {
-    const { error } = await db.from('vouchers').delete().in('id', voucherIds)
-    if (error) console.error('[voucher.integration.test cleanup] vouchers delete failed', error)
-  }
-  voucherIds.length = 0
-  customerNames.length = 0
-}
-
 describe.skipIf(skipIntegration)('voucher feature — live concurrency, quota, and RLS', () => {
   const db = skipIntegration ? null! : createClient(url!, serviceKey!)
 
-  afterEach(() => cleanup(db))
+  async function cleanup() {
+    // voucher_redemptions.booking_id and .voucher_id have no ON DELETE
+    // CASCADE (NO ACTION) — redemption rows must go first, or deleting the
+    // booking/voucher silently fails on the FK and leaves both behind.
+    if (voucherIds.length) {
+      await db.from('voucher_redemptions').delete().in('voucher_id', voucherIds)
+    }
+    if (customerNames.length) {
+      const { error } = await db.from('bookings').delete().in('customer_name', customerNames)
+      if (error) console.error('[voucher.integration.test cleanup] bookings delete failed', error)
+    }
+    if (voucherIds.length) {
+      const { error } = await db.from('vouchers').delete().in('id', voucherIds)
+      if (error) console.error('[voucher.integration.test cleanup] vouchers delete failed', error)
+    }
+    voucherIds.length = 0
+    customerNames.length = 0
+  }
+
+  afterEach(cleanup)
 
   it('serializes concurrent redemptions: exactly one of two simultaneous bookings wins a max_redemptions=1 voucher', async () => {
     const code = `TESTRACE${randomUUID().slice(0, 8).toUpperCase()}`
