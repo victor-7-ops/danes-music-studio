@@ -149,8 +149,8 @@ export default async function DashboardPage({ searchParams }: PageProps) {
         acc.monthlyRevenue[phMonth] = (acc.monthlyRevenue[phMonth] ?? 0) + amountPaid
       }
 
-      if (b.status === 'confirmed' && amountPaid < Number(b.deposit_amount)) {
-        acc.outstanding += Number(b.deposit_amount) - amountPaid
+      if (b.status === 'confirmed' && amountPaid < Number(b.total_amount)) {
+        acc.outstanding += Number(b.total_amount) - amountPaid
       }
 
       if (b.status === 'pending' || b.status === 'confirmed') {

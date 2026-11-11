@@ -112,6 +112,23 @@ function formatPesos(centavos: number): string {
   return `₱${(centavos / 100).toLocaleString('en-PH')}`
 }
 
+function formatManilaDateTime(iso: string): string {
+  return new Date(iso).toLocaleString('en-PH', {
+    timeZone: 'Asia/Manila',
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  })
+}
+
+function formatManilaTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('en-PH', {
+    timeZone: 'Asia/Manila',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  })
+}
+
 export function newPendingBookingMessage(booking: {
   confirmationCode: string
   customerName: string
@@ -130,8 +147,7 @@ export function newPendingBookingMessage(booking: {
   return (
     `🆕 New pending booking <b>${escapeHtml(booking.confirmationCode)}</b>\n` +
     `${who}\n` +
-    `${new Date(booking.startAt).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })} – ` +
-    `${new Date(booking.endAt).toLocaleTimeString('en-PH', { timeZone: 'Asia/Manila' })}\n` +
+    `${formatManilaDateTime(booking.startAt)} – ${formatManilaTime(booking.endAt)}\n` +
     `Due now: ${formatPesos(amountDue)} (${booking.paymentMethod})`
   )
 }

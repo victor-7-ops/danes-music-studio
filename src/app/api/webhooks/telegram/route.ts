@@ -32,12 +32,18 @@ export async function POST(request: Request) {
 
   const supabase = createServiceClient()
 
-  const result =
-    action === 'confirm'
-      ? await applyPaymentConfirmation(supabase, bookingId, (
-          await supabase.from('bookings').select('total_amount').eq('id', bookingId).single()
-        ).data?.total_amount ?? 0)
-      : await applyBookingCancellation(supabase, bookingId)
+  let result
+  if (action === 'confirm') {
+    const { data: booking } = await supabase
+      .from('bookings')
+      .select('total_amount, deposit_amount, payment_method')
+      .eq('id', bookingId)
+      .single()
+    const amountDue = booking?.payment_method === 'deposit' ? booking.deposit_amount : booking?.total_amount ?? 0
+    result = await applyPaymentConfirmation(supabase, bookingId, amountDue, booking?.payment_method as 'full' | 'deposit' | undefined)
+  } else {
+    result = await applyBookingCancellation(supabase, bookingId)
+  }
 
   await answerTelegramCallback(callback.id, result.success ? 'Done' : result.error)
 
