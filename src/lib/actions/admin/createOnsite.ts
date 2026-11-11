@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { pushGcalEvent } from '@/lib/gcal/pushSync'
+import { SERVICES, isServiceSlug, type ServiceSlug } from '@/lib/services'
 
 export type PaymentType = 'unpaid' | 'deposit' | 'full'
 
@@ -13,6 +14,7 @@ export interface CreateOnsiteParams {
   customerEmail?: string
   customerPhone: string
   bandName?: string
+  service?: ServiceSlug   // defaults to rehearsal
   paymentType: PaymentType
   equipmentIds?: string[]
   voucherCode?: string
@@ -26,6 +28,8 @@ export async function createOnsite(
     data: { user },
   } = await supabase.auth.getUser()
   if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
+
+  const service: ServiceSlug = params.service && isServiceSlug(params.service) ? params.service : 'rehearsal'
 
   const dateOk = /^\d{4}-\d{2}-\d{2}$/.test(params.date)
   const startOk = /^(?:[01]\d|2[0-3]):00$/.test(params.start)
@@ -45,7 +49,7 @@ export async function createOnsite(
       date: params.date,
       start: params.start,
       end: params.end,
-      service: 'Rehearsal',
+      service: SERVICES[service].name,
       customer_name: params.customerName.trim(),
       customer_email: params.customerEmail?.trim() ?? '',
       customer_phone: params.customerPhone.trim(),

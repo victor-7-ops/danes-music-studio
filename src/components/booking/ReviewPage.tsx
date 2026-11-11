@@ -28,6 +28,7 @@ interface ReviewPageProps {
   equipment: EquipmentOption[]
   voucherCode?: string
   voucherDiscountCents?: number
+  termsAndConditions: string
 }
 
 export default function ReviewPage({
@@ -46,6 +47,7 @@ export default function ReviewPage({
   equipment,
   voucherCode,
   voucherDiscountCents,
+  termsAndConditions,
 }: ReviewPageProps) {
   const router = useRouter()
   const [error, setError] = useState<string | null>(null)
@@ -67,6 +69,7 @@ export default function ReviewPage({
         equipmentIds: equipment.map((item) => item.id),
         occurrenceCount,
         voucherCode,
+        termsAccepted: true,
       })
       if (result.success) {
         router.push(`/book/series-confirm?codes=${result.codes.join(',')}&tokens=${result.tokens.join(',')}&deadline=${encodeURIComponent(result.holdExpiresAt)}`)
@@ -91,6 +94,7 @@ export default function ReviewPage({
       bandName,
       equipmentIds: equipment.map((item) => item.id),
       voucherCode,
+      termsAccepted: true,
     })
     if (result.success) {
       router.push(`/book/confirm?code=${result.code}&token=${result.token}`)
@@ -122,6 +126,7 @@ export default function ReviewPage({
         equipment={equipment}
         voucherCode={voucherCode}
         voucherDiscountCents={voucherDiscountCents}
+        termsAndConditions={termsAndConditions}
         onConfirm={handleConfirm}
       />
     </>

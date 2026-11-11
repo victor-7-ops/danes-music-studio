@@ -32,7 +32,7 @@ export default async function SlotsPage({ searchParams }: PageProps) {
     redirect('/book')
   }
 
-  const baseUrl = process.env.NEXT_PUBLIC_URL ?? 'http://localhost:3000'
+  const baseUrl = process.env.NEXT_PUBLIC_URL ?? (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000')
   const res = await fetch(`${baseUrl}/api/availability?date=${encodeURIComponent(date)}`, {
     cache: 'no-store',
   }).catch(() => null)

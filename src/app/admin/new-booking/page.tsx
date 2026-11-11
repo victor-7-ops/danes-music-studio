@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { createOnsite, type PaymentType } from '@/lib/actions/admin/createOnsite'
+import { SERVICES, type ServiceSlug } from '@/lib/services'
 
 const inputClass = 'w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink focus-visible:ring-2 focus-visible:ring-ink/30'
 const labelClass = 'block font-sans text-sm uppercase tracking-widest mb-2'
@@ -15,6 +16,7 @@ export default function NewBookingPage() {
   const [customerPhone, setCustomerPhone] = useState('')
   const [customerEmail, setCustomerEmail] = useState('')
   const [bandName, setBandName] = useState('')
+  const [service, setService] = useState<ServiceSlug>('rehearsal')
   const [paymentType, setPaymentType] = useState<PaymentType>('unpaid')
   const [voucherCode, setVoucherCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -29,6 +31,7 @@ export default function NewBookingPage() {
     setCustomerPhone('')
     setCustomerEmail('')
     setBandName('')
+    setService('rehearsal')
     setPaymentType('unpaid')
     setVoucherCode('')
     setError(null)
@@ -64,6 +67,7 @@ export default function NewBookingPage() {
         customerPhone: customerPhone.trim(),
         customerEmail: customerEmail.trim() || undefined,
         bandName: bandName.trim() || undefined,
+        service,
         paymentType,
         voucherCode: voucherCode.trim() || undefined,
       })
@@ -221,6 +225,22 @@ export default function NewBookingPage() {
               placeholder="Optional"
               className={inputClass}
             />
+          </div>
+
+          <div>
+            <label htmlFor="nb-service" className={labelClass}>
+              Service
+            </label>
+            <select
+              id="nb-service"
+              value={service}
+              onChange={(e) => setService(e.target.value as ServiceSlug)}
+              className={inputClass}
+            >
+              {Object.entries(SERVICES).map(([slug, s]) => (
+                <option key={slug} value={slug}>{s.label}</option>
+              ))}
+            </select>
           </div>
 
           <div>

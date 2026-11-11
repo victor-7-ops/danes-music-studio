@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import { createWalkIn } from '@/lib/actions/admin/createWalkIn'
+import { SERVICES, type ServiceSlug } from '@/lib/services'
 
 function todayDate(): string {
   return new Date().toISOString().split('T')[0]
@@ -16,6 +17,7 @@ export default function WalkInPage() {
   const [date, setDate] = useState(todayDate())
   const [start, setStart] = useState(currentHour())
   const [end, setEnd] = useState('')
+  const [service, setService] = useState<ServiceSlug>('rehearsal')
   const [bandName, setBandName] = useState('')
   const [voucherCode, setVoucherCode] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -26,6 +28,7 @@ export default function WalkInPage() {
     setDate(todayDate())
     setStart(currentHour())
     setEnd('')
+    setService('rehearsal')
     setBandName('')
     setVoucherCode('')
     setError(null)
@@ -50,6 +53,7 @@ export default function WalkInPage() {
         date,
         start,
         end,
+        service,
         bandName: bandName.trim() || undefined,
         voucherCode: voucherCode.trim() || undefined,
       })
@@ -118,6 +122,20 @@ export default function WalkInPage() {
               onChange={(e) => setEnd(e.target.value)}
               className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
             />
+          </div>
+
+          <div>
+            <label htmlFor="walkin-service" className="block font-sans text-sm uppercase tracking-widest mb-2">Service</label>
+            <select
+              id="walkin-service"
+              value={service}
+              onChange={(e) => setService(e.target.value as ServiceSlug)}
+              className="w-full border border-ink/30 bg-bg px-4 py-3 font-sans text-sm focus:outline-none focus:border-ink"
+            >
+              {Object.entries(SERVICES).map(([slug, s]) => (
+                <option key={slug} value={slug}>{s.label}</option>
+              ))}
+            </select>
           </div>
 
           <div>

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import ReviewPage from '@/components/booking/ReviewPage'
 import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { SERVICES, isServiceSlug } from '@/lib/services'
 import { quoteVoucher } from '@/lib/actions/voucherQuote'
 
@@ -36,7 +37,7 @@ export default async function ReviewServerPage({ searchParams }: PageProps) {
   const equipmentIds = equipment ? equipment.split(',').filter(Boolean) : []
 
   const supabase = await createClient()
-  const [{ data: serviceType }, { data: selectedEquipment }] = await Promise.all([
+  const [{ data: serviceType }, { data: selectedEquipment }, { data: settingsRow }] = await Promise.all([
     supabase
       .from('service_types')
       .select('rate_per_hour, deposit_pct')
@@ -50,7 +51,11 @@ export default async function ReviewServerPage({ searchParams }: PageProps) {
           .in('id', equipmentIds)
           .eq('active', true)
       : Promise.resolve({ data: [] }),
+    // settings is admin-only RLS — service client bypasses it for this
+    // public, read-only terms-and-conditions text.
+    createServiceClient().from('settings').select('terms_and_conditions').single(),
   ])
+  const termsAndConditions = settingsRow?.terms_and_conditions ?? ''
 
   if (!serviceType) {
     redirect('/book')
@@ -94,6 +99,7 @@ export default async function ReviewServerPage({ searchParams }: PageProps) {
         equipment={selectedEquipment ?? []}
         voucherCode={voucher ?? undefined}
         voucherDiscountCents={voucherDiscountCents}
+        termsAndConditions={termsAndConditions}
       />
     </div>
   )

@@ -132,6 +132,8 @@ export type Database = {
           source: Database["public"]["Enums"]["booking_source"]
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
+          terms_accepted_at: string | null
+          terms_accepted_text: string | null
           total_amount: number
           updated_at: string
           voucher_code_snapshot: string | null
@@ -165,6 +167,8 @@ export type Database = {
           source?: Database["public"]["Enums"]["booking_source"]
           start_at: string
           status?: Database["public"]["Enums"]["booking_status"]
+          terms_accepted_at?: string | null
+          terms_accepted_text?: string | null
           total_amount: number
           updated_at?: string
           voucher_code_snapshot?: string | null
@@ -198,6 +202,8 @@ export type Database = {
           source?: Database["public"]["Enums"]["booking_source"]
           start_at?: string
           status?: Database["public"]["Enums"]["booking_status"]
+          terms_accepted_at?: string | null
+          terms_accepted_text?: string | null
           total_amount?: number
           updated_at?: string
           voucher_code_snapshot?: string | null
@@ -387,6 +393,7 @@ export type Database = {
           operating_close: string
           operating_open: string
           reminder_enabled: boolean
+          terms_and_conditions: string
         }
         Insert: {
           account_name?: string | null
@@ -402,6 +409,7 @@ export type Database = {
           operating_close?: string
           operating_open?: string
           reminder_enabled?: boolean
+          terms_and_conditions?: string
         }
         Update: {
           account_name?: string | null
@@ -417,6 +425,7 @@ export type Database = {
           operating_close?: string
           operating_open?: string
           reminder_enabled?: boolean
+          terms_and_conditions?: string
         }
         Relationships: []
       }
@@ -592,6 +601,8 @@ export type Database = {
           source: Database["public"]["Enums"]["booking_source"]
           start_at: string
           status: Database["public"]["Enums"]["booking_status"]
+          terms_accepted_at: string | null
+          terms_accepted_text: string | null
           total_amount: number
           updated_at: string
           voucher_code_snapshot: string | null

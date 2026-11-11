@@ -3,7 +3,7 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: vi.fn() }))
 import { createClient } from '@/lib/supabase/server'
 import { updateSettings } from '@/lib/actions/admin/updateSettings'
 import { makeMockClient } from './supabaseMock'
-const params = { operatingOpen: '09:00', operatingClose: '22:00', holdWindowMinutes: 15, defaultDepositPct: 30, reminderEnabled: true, ratePerHour: 50000, gcashQrUrl: '', bankName: '', accountName: '', accountNumber: '' }
+const params = { operatingOpen: '09:00', operatingClose: '22:00', holdWindowMinutes: 15, defaultDepositPct: 30, reminderEnabled: true, ratePerHour: 50000, gcashQrUrl: '', bankName: '', accountName: '', accountNumber: '', termsAndConditions: '' }
 it.each([null, { message: 'transaction failed' }])('saves settings and pricing in one transaction (%j)', async error => {
   const db = makeMockClient({}, { rpc: { update_studio_settings: [{ data: null, error }] } })
   vi.mocked(createClient).mockResolvedValue(db as never)
