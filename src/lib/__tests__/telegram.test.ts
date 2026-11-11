@@ -77,6 +77,7 @@ describe('paymentProofUploadedMessage', () => {
   it('lists service type, and full-payment amount', () => {
     const msg = paymentProofUploadedMessage([
       {
+        id: 'booking-1',
         confirmationCode: 'DMS-GH78',
         customerName: 'A',
         bandName: null,
@@ -95,6 +96,7 @@ describe('paymentProofUploadedMessage', () => {
   it('shows deposit amount and remaining balance', () => {
     const msg = paymentProofUploadedMessage([
       {
+        id: 'booking-2',
         confirmationCode: 'DMS-IJ90',
         customerName: 'B',
         bandName: 'Band B',

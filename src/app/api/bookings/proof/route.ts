@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
-import { sendTelegramMessage, paymentProofUploadedMessage } from '@/lib/telegram'
+import { sendTelegramMessage, paymentProofUploadedMessage, bookingActionKeyboard } from '@/lib/telegram'
 import { isValidImageMagicBytes } from '@/lib/imageMagicBytes'
 import { InMemoryRateLimiter } from '@/lib/lookupPreviousBooking'
 
@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
   void sendTelegramMessage(
     paymentProofUploadedMessage([
       {
+        id: booking.id,
         confirmationCode: booking.confirmation_code,
         customerName: booking.customer_name,
         bandName: booking.band_name,
@@ -121,7 +122,8 @@ export async function POST(req: NextRequest) {
         amountPaid: booking.amount_paid,
         totalAmount: booking.total_amount,
       },
-    ])
+    ]),
+    bookingActionKeyboard(booking.id)
   ).catch((err: unknown) => {
     console.error('[telegram] proof uploaded alert failed', err)
   })

@@ -1,6 +1,18 @@
 const API_BASE = 'https://api.telegram.org'
 
-export async function sendTelegramMessage(text: string): Promise<void> {
+export type TelegramInlineKeyboard = { text: string; callback_data: string }[][]
+
+export function bookingActionKeyboard(bookingId: string): TelegramInlineKeyboard {
+  return [[
+    { text: '✅ Confirm payment', callback_data: `confirm:${bookingId}` },
+    { text: '❌ Cancel booking', callback_data: `cancel:${bookingId}` },
+  ]]
+}
+
+export async function sendTelegramMessage(
+  text: string,
+  replyMarkup?: TelegramInlineKeyboard
+): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN
   const chatId = process.env.TELEGRAM_CHAT_ID
   if (!token || !chatId) return
@@ -14,6 +26,7 @@ export async function sendTelegramMessage(text: string): Promise<void> {
         text,
         parse_mode: 'HTML',
         disable_web_page_preview: true,
+        ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}),
       }),
     })
     if (!res.ok) {
@@ -21,6 +34,41 @@ export async function sendTelegramMessage(text: string): Promise<void> {
     }
   } catch (e) {
     console.error('Telegram notify failed:', e)
+  }
+}
+
+export async function answerTelegramCallback(callbackQueryId: string, text?: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  if (!token) return
+  try {
+    await fetch(`${API_BASE}/bot${token}/answerCallbackQuery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ callback_query_id: callbackQueryId, ...(text ? { text } : {}) }),
+    })
+  } catch (e) {
+    console.error('Telegram answerCallbackQuery failed:', e)
+  }
+}
+
+export async function editTelegramMessage(
+  chatId: number | string,
+  messageId: number,
+  text: string
+): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  if (!token) return
+  try {
+    const res = await fetch(`${API_BASE}/bot${token}/editMessageText`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML' }),
+    })
+    if (!res.ok) {
+      console.error('Telegram editMessageText failed:', res.status, await res.text())
+    }
+  } catch (e) {
+    console.error('Telegram editMessageText failed:', e)
   }
 }
 
@@ -76,6 +124,7 @@ export function paymentConfirmedMessage(booking: {
 }
 
 export function paymentProofUploadedMessage(bookings: {
+  id: string
   confirmationCode: string
   customerName: string
   bandName: string | null
