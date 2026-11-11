@@ -52,10 +52,8 @@ export default async function ReviewServerPage({ searchParams }: PageProps) {
           .eq('active', true)
       : Promise.resolve({ data: [] }),
     // settings is admin-only RLS — service client bypasses it for this
-    // public, read-only terms-and-conditions text. Cast: column exists in
-    // the DB (migration 20261111010000) but database.ts regenerates from
-    // the live schema, so re-run `supabase gen types` after applying it.
-    createServiceClient().from('settings').select('terms_and_conditions').single() as unknown as Promise<{ data: { terms_and_conditions: string } | null }>,
+    // public, read-only terms-and-conditions text.
+    createServiceClient().from('settings').select('terms_and_conditions').single(),
   ])
   const termsAndConditions = settingsRow?.terms_and_conditions ?? ''
 
