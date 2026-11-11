@@ -3,6 +3,7 @@
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { SERVICES } from '@/lib/services'
 import { validateBookingInput, weeklyDates } from '@/lib/bookingValidation'
+import { notifyNewPendingBooking } from '@/lib/bookingOps/notifyNewBooking'
 
 export interface CreateRecurringBookingParams {
   date: string; start: string; end: string; service: string
@@ -50,5 +51,7 @@ export async function createRecurringBooking(params: CreateRecurringBookingParam
   if (result.codes?.length !== params.occurrenceCount || result.tokens?.length !== params.occurrenceCount || !result.hold_expires_at) {
     return { success: false, error: 'Reservation result was incomplete.' }
   }
+  void notifyNewPendingBooking(supabase, result.codes[0], params.occurrenceCount)
+
   return { success: true, codes: result.codes, tokens: result.tokens, holdExpiresAt: result.hold_expires_at }
 }

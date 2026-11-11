@@ -3,6 +3,7 @@
 import { createServiceClient } from '@/lib/supabase/serviceClient'
 import { SERVICES } from '@/lib/services'
 import { validateBookingInput, weeklyDates } from '@/lib/bookingValidation'
+import { notifyNewPendingBooking } from '@/lib/bookingOps/notifyNewBooking'
 
 export interface CreateBookingParams {
   date: string; start: string; end: string; service: string
@@ -46,5 +47,8 @@ export async function createBooking(params: CreateBookingParams): Promise<Create
   }
   const result = data as { codes?: string[]; tokens?: string[]; hold_expires_at?: string }
   if (!result.codes?.[0] || !result.tokens?.[0] || !result.hold_expires_at) return { success: false, error: 'Reservation result was incomplete.' }
+
+  void notifyNewPendingBooking(supabase, result.codes[0])
+
   return { success: true, code: result.codes[0], token: result.tokens[0], holdExpiresAt: result.hold_expires_at }
 }
