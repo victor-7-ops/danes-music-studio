@@ -34,7 +34,7 @@ export default async function SeriesConfirmPage({ searchParams }: PageProps) {
   }
 
   const service = createServiceClient()
-  const { data: records } = await service.from('bookings').select('confirmation_code, cancel_token, start_at, status, hold_expires_at, payment_proof_url, payment_method, total_amount, deposit_amount').in('confirmation_code', codes)
+  const { data: records } = await service.from('bookings').select('confirmation_code, cancel_token, start_at, status, hold_expires_at, payment_proof_url, payment_method, total_amount, deposit_amount, voucher_code_snapshot, voucher_discount_centavos').in('confirmation_code', codes)
   const sessions = codes.map((code, i) => records?.find(row => row.confirmation_code === code && row.cancel_token === tokens[i]))
   if (sessions.some(session => !session)) redirect('/book')
   const deadline = sessions.find(session => session?.hold_expires_at)?.hold_expires_at ?? null
@@ -65,6 +65,11 @@ export default async function SeriesConfirmPage({ searchParams }: PageProps) {
             <span className="font-sans text-xs text-muted">
               {sessions[i]!.total_amount === 0 ? 'No payment required' : `${formatPHP(sessions[i]!.payment_method === 'deposit' ? sessions[i]!.deposit_amount : sessions[i]!.total_amount)} due`}
             </span>
+            {sessions[i]!.voucher_code_snapshot && sessions[i]!.voucher_discount_centavos > 0 && (
+              <span className="font-sans text-xs text-muted">
+                Voucher {sessions[i]!.voucher_code_snapshot}: -{formatPHP(sessions[i]!.voucher_discount_centavos)}
+              </span>
+            )}
             {sessions[i]!.status === 'pending' && !sessions[i]!.payment_proof_url && (!sessions[i]!.hold_expires_at || sessions[i]!.hold_expires_at > now) ? <Link
               href={`/book/pay?code=${code}&token=${tokens[i]}`}
               className="font-display text-lg text-ink tracking-widest hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
