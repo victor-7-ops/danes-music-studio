@@ -58,7 +58,9 @@ export async function sendTelegramPhoto(
         ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}),
       }),
     })
-    console.log('[telegram-debug] sendPhoto result:', res.status, await res.text())
+    if (!res.ok) {
+      console.error('Telegram sendPhoto failed:', res.status, await res.text())
+    }
   } catch (e) {
     console.error('Telegram sendPhoto failed:', e)
   }

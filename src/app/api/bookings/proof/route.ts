@@ -124,18 +124,16 @@ export async function POST(req: NextRequest) {
   ])
   const keyboard = bookingActionKeyboard(booking.id)
 
-  void supabase.storage
-    .from('payment-proofs')
-    .createSignedUrl(path, 600)
-    .then(({ data: signed, error: signError }) => {
-      console.log('[telegram-debug] signed url result:', !!signed?.signedUrl, signError)
-      return signed?.signedUrl
-        ? sendTelegramPhoto(signed.signedUrl, caption, keyboard)
-        : sendTelegramMessage(caption, keyboard)
-    })
-    .catch((err: unknown) => {
-      console.error('[telegram] proof uploaded alert failed', err)
-    })
+  try {
+    const { data: signed } = await supabase.storage.from('payment-proofs').createSignedUrl(path, 600)
+    if (signed?.signedUrl) {
+      await sendTelegramPhoto(signed.signedUrl, caption, keyboard)
+    } else {
+      await sendTelegramMessage(caption, keyboard)
+    }
+  } catch (err) {
+    console.error('[telegram] proof uploaded alert failed', err)
+  }
 
   return NextResponse.json({ ok: true })
 }
