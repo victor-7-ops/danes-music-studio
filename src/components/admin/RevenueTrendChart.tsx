@@ -89,9 +89,7 @@ export function RevenueTrendChart({ data, bordered = true, granularity = 'day' }
         {/* Points with native tooltips */}
         {data.map((d, i) => (
           <circle key={d.date} cx={x(i)} cy={y(d.amount)} r={3} className="fill-ink">
-            <title>
-              {d.date}: {formatShortPHP(d.amount)}
-            </title>
+            <title>{`${d.date}: ${formatShortPHP(d.amount)}`}</title>
           </circle>
         ))}
 

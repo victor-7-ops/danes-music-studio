@@ -58,9 +58,7 @@ export function SourceBarChart({ data, bordered = true }: SourceBarChartProps) {
               </text>
               <rect x={PAD_LEFT} y={cy - 8} width={barW} height={16} className="fill-ink/10" />
               <rect x={PAD_LEFT} y={cy - 8} width={w} height={16} className="fill-ink">
-                <title>
-                  {d.label}: {d.value}
-                </title>
+                <title>{`${d.label}: ${d.value}`}</title>
               </rect>
               <text
                 x={PAD_LEFT + w + 6}
