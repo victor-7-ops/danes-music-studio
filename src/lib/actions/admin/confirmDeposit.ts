@@ -25,7 +25,7 @@ export async function confirmDeposit(
 
   const { data: existing, error: fetchError } = await supabase
     .from('bookings')
-    .select('total_amount, amount_paid, status')
+    .select('total_amount, amount_paid, status, source, payment_proof_url')
     .eq('id', bookingId)
     .single()
 
@@ -34,6 +34,13 @@ export async function confirmDeposit(
   }
   if (!['pending', 'confirmed'].includes(existing.status) || amountReceived < existing.amount_paid || (existing.status === 'confirmed' && amountReceived === existing.amount_paid)) {
     return { success: false, error: 'Payment or booking state has changed. Refresh before confirming.' }
+  }
+  // Customer-submitted bookings must have an uploaded payment proof before an
+  // admin can mark them paid. Admin-created onsite/walk-in bookings skip this
+  // — the admin personally collected payment in person, with no customer
+  // upload step to require it from.
+  if (existing.source === 'online' && !existing.payment_proof_url) {
+    return { success: false, error: 'No payment proof has been uploaded for this booking yet.' }
   }
 
   // Prefer the caller's stated intent (which button was pressed) — falling

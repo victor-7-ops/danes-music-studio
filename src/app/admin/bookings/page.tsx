@@ -38,7 +38,7 @@ export default async function BookingsPage({
   let query = supabase
     .from('bookings')
     .select(
-      'id, confirmation_code, band_name, customer_name, start_at, end_at, status, source, amount_paid, deposit_amount, total_amount, payment_method'
+      'id, confirmation_code, band_name, customer_name, start_at, end_at, status, source, amount_paid, deposit_amount, total_amount, payment_method, payment_proof_url'
     )
     .order('start_at', { ascending: false })
   if (params.status) query = query.eq('status', params.status)
@@ -248,6 +248,8 @@ export default async function BookingsPage({
                         depositAmount={booking.deposit_amount}
                         amountPaid={booking.amount_paid}
                         totalAmount={booking.total_amount}
+                        source={booking.source}
+                        hasPaymentProof={Boolean(booking.payment_proof_url)}
                       />
                     </div>
                     <BookingDeliveryActions bookingId={booking.id} status={booking.status} />

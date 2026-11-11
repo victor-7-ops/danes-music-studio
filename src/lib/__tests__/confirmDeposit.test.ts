@@ -98,6 +98,30 @@ describe('confirmDeposit', () => {
     expect(result.error).toBeTruthy()
   })
 
+  it('rejects confirming an online booking with no uploaded payment proof', async () => {
+    const client = makeMockClient({ bookings: [
+      { data: { total_amount: 35000, amount_paid: 0, status: 'pending', source: 'online', payment_proof_url: null }, error: null },
+    ] })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const result = await confirmDeposit('booking-1', 35000)
+
+    expect(result).toEqual({ success: false, error: 'No payment proof has been uploaded for this booking yet.' })
+    expect(client.from).toHaveBeenCalledTimes(1)
+  })
+
+  it('allows confirming an onsite booking with no payment proof', async () => {
+    const client = makeMockClient({ bookings: [
+      { data: { total_amount: 35000, amount_paid: 0, status: 'pending', source: 'onsite', payment_proof_url: null }, error: null },
+      { data: { confirmation_code: 'DMS-ON1', amount_paid: 35000 }, error: null },
+    ] })
+    vi.mocked(createClient).mockResolvedValue(client as never)
+
+    const result = await confirmDeposit('booking-1', 35000)
+
+    expect(result.success).toBe(true)
+  })
+
   it('requires an authenticated user', async () => {
     const client = makeMockClient({}, { user: null })
     vi.mocked(createClient).mockResolvedValue(client as never)

@@ -12,6 +12,8 @@ interface BookingPaymentActionProps {
   depositAmount: number
   amountPaid: number
   totalAmount: number
+  source: string
+  hasPaymentProof: boolean
 }
 
 export function BookingPaymentAction({
@@ -21,6 +23,8 @@ export function BookingPaymentAction({
   depositAmount,
   amountPaid,
   totalAmount,
+  source,
+  hasPaymentProof,
 }: BookingPaymentActionProps) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
@@ -48,7 +52,17 @@ export function BookingPaymentAction({
   // the remaining balance as received once the customer pays on the day.
   const showBalanceButton = status === 'confirmed' && paymentMethod === 'deposit' && amountPaid < totalAmount
 
+  const awaitingProof = source === 'online' && !hasPaymentProof && (showDepositButton || showFullButton || showBalanceButton)
+
   if (!showDepositButton && !showFullButton && !showBalanceButton && !error) return null
+
+  if (awaitingProof) {
+    return (
+      <p className="font-sans text-xs text-ink/60">
+        Waiting for the customer to upload payment proof before this can be confirmed.
+      </p>
+    )
+  }
 
   return (
     <div className="flex flex-col gap-1 items-start">

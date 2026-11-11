@@ -293,8 +293,13 @@ export function BookingDrawer({ booking, onClose, onMutated }: BookingDrawerProp
 
         {/* Actions */}
         <div className="flex flex-col gap-3 mt-auto">
-          {/* Confirm deposit — pending only */}
-          {booking.status === 'pending' && (
+          {/* Confirm deposit — pending only, and only once an online booking has its payment proof */}
+          {booking.status === 'pending' && booking.source === 'online' && !booking.payment_proof_url && (
+            <p className="font-sans text-xs text-ink/60">
+              Waiting for the customer to upload payment proof before this can be confirmed.
+            </p>
+          )}
+          {booking.status === 'pending' && (booking.source !== 'online' || booking.payment_proof_url) && (
             <div className="space-y-2">
               <label
                 htmlFor="drawer-amount-received"
