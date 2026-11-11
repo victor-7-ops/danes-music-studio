@@ -37,7 +37,7 @@ export default async function ReviewServerPage({ searchParams }: PageProps) {
   const equipmentIds = equipment ? equipment.split(',').filter(Boolean) : []
 
   const supabase = await createClient()
-  const [{ data: serviceType }, { data: selectedEquipment }, { data: settingsRow }] = await Promise.all([
+  const [{ data: serviceType }, { data: selectedEquipment }, { data: settingsRow, error: settingsError }] = await Promise.all([
     supabase
       .from('service_types')
       .select('rate_per_hour, deposit_pct')
@@ -55,6 +55,7 @@ export default async function ReviewServerPage({ searchParams }: PageProps) {
     // public, read-only terms-and-conditions text.
     createServiceClient().from('settings').select('terms_and_conditions').single(),
   ])
+  if (settingsError) console.error('Failed to load terms and conditions:', settingsError)
   const termsAndConditions = settingsRow?.terms_and_conditions ?? ''
 
   if (!serviceType) {
