@@ -127,11 +127,12 @@ export async function POST(req: NextRequest) {
   void supabase.storage
     .from('payment-proofs')
     .createSignedUrl(path, 600)
-    .then(({ data: signed }) =>
-      signed?.signedUrl
+    .then(({ data: signed, error: signError }) => {
+      console.log('[telegram-debug] signed url result:', !!signed?.signedUrl, signError)
+      return signed?.signedUrl
         ? sendTelegramPhoto(signed.signedUrl, caption, keyboard)
         : sendTelegramMessage(caption, keyboard)
-    )
+    })
     .catch((err: unknown) => {
       console.error('[telegram] proof uploaded alert failed', err)
     })
