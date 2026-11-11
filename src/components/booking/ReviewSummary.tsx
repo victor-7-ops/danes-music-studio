@@ -26,6 +26,7 @@ interface ReviewSummaryProps {
   equipment: EquipmentOption[]
   voucherCode?: string
   voucherDiscountCents?: number
+  termsAndConditions: string
   onConfirm: (recurring: boolean, occurrenceCount: number) => Promise<void>
 }
 
@@ -60,6 +61,7 @@ export default function ReviewSummary({
   equipment,
   voucherCode,
   voucherDiscountCents = 0,
+  termsAndConditions,
   onConfirm,
 }: ReviewSummaryProps) {
   const [agreed, setAgreed] = useState(false)
@@ -212,7 +214,16 @@ export default function ReviewSummary({
         </div>
       </section>
 
-      {/* Terms checkbox */}
+      {/* Terms & Conditions */}
+      {termsAndConditions.trim() && (
+        <section className="mt-8">
+          <h2 className={sectionHeading}>Terms &amp; Conditions</h2>
+          <div className="border border-border p-4 max-h-48 overflow-y-auto font-sans text-sm text-ink whitespace-pre-wrap">
+            {termsAndConditions}
+          </div>
+        </section>
+      )}
+
       <div className="mt-8 flex items-start gap-3">
         <input
           type="checkbox"
@@ -222,7 +233,7 @@ export default function ReviewSummary({
           className="mt-1 cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink focus-visible:ring-offset-2"
         />
         <label htmlFor="terms" className="font-sans text-sm text-ink cursor-pointer">
-          I confirm these details are correct and agree to the studio&apos;s booking terms.
+          I confirm these details are correct and agree to the studio&apos;s{termsAndConditions.trim() ? ' terms and conditions above.' : ' booking terms.'}
         </label>
       </div>
 

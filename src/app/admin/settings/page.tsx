@@ -18,6 +18,7 @@ const DEFAULTS = {
   bankName: '',
   accountName: '',
   accountNumber: '',
+  termsAndConditions: '',
 }
 
 export default async function SettingsPage() {
@@ -63,6 +64,7 @@ export default async function SettingsPage() {
       bankName: s.bank_name ?? '',
       accountName: s.account_name ?? '',
       accountNumber: s.account_number ?? '',
+      termsAndConditions: s.terms_and_conditions ?? '',
     }
   }
 

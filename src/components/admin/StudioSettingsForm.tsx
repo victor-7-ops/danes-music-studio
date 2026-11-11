@@ -15,6 +15,7 @@ export interface FormState {
   bankName: string
   accountName: string
   accountNumber: string
+  termsAndConditions: string
 }
 
 interface StudioSettingsFormProps {
@@ -94,6 +95,7 @@ export default function StudioSettingsForm({ initialForm, children }: StudioSett
       bankName: form.bankName,
       accountName: form.accountName,
       accountNumber: form.accountNumber,
+      termsAndConditions: form.termsAndConditions,
     })
 
     if (result.success) {
@@ -121,6 +123,7 @@ export default function StudioSettingsForm({ initialForm, children }: StudioSett
       bankName: form.bankName,
       accountName: form.accountName,
       accountNumber: form.accountNumber,
+      termsAndConditions: form.termsAndConditions,
     })
 
     if (result.success) {
@@ -317,6 +320,23 @@ export default function StudioSettingsForm({ initialForm, children }: StudioSett
         </label>
         <p className="mt-1 ml-7 font-sans text-xs text-muted">
           Reminder emails sent 24 hours before booking start
+        </p>
+      </div>
+
+      {/* Terms & Conditions */}
+      <div>
+        <p className={`${labelClass} mb-3`}>Terms &amp; Conditions</p>
+        <textarea
+          rows={6}
+          className={`${inputClass} rounded-2xl`}
+          placeholder="Shown to customers on the booking review step. Leave blank to show nothing."
+          value={form.termsAndConditions}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, termsAndConditions: e.target.value }))
+          }
+        />
+        <p className="mt-1 font-sans text-xs text-muted">
+          Customers must check a box agreeing to this text before a booking can be submitted. Each booking stores the exact text shown at the time.
         </p>
       </div>
 

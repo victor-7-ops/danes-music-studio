@@ -7,7 +7,7 @@ import { validateBookingInput, weeklyDates } from '@/lib/bookingValidation'
 export interface CreateBookingParams {
   date: string; start: string; end: string; service: string
   payment: 'full' | 'deposit'; contactName: string; email: string; phone: string
-  bandName: string; equipmentIds?: string[]; voucherCode?: string
+  bandName: string; equipmentIds?: string[]; voucherCode?: string; termsAccepted: boolean
 }
 
 export type CreateBookingResult =
@@ -16,6 +16,7 @@ export type CreateBookingResult =
 
 export async function createBooking(params: CreateBookingParams): Promise<CreateBookingResult> {
   if (!validateBookingInput(params)) return { success: false, error: 'Invalid booking parameters.' }
+  if (!params.termsAccepted) return { success: false, error: 'Please agree to the terms and conditions.' }
   const supabase = createServiceClient()
   const slug = params.service as keyof typeof SERVICES
   const date = weeklyDates(params.date, 1)[0]
@@ -26,10 +27,12 @@ export async function createBooking(params: CreateBookingParams): Promise<Create
     occurrence_count: 1,
     occurrences: [{ date, start_at: `${date}T${params.start}:00+08:00`, end_at: `${date}T${params.end}:00+08:00` }],
     voucher_code: params.voucherCode?.trim() || null,
+    terms_accepted: params.termsAccepted,
   }
   const { data, error } = await supabase.rpc('create_customer_reservations', { p_request: request })
   if (error || !data) {
     const message = error?.message ?? ''
+    if (/terms_not_accepted/i.test(message)) return { success: false, error: 'Please agree to the terms and conditions.' }
     if (/booking_must_be_future|outside_operating_hours|studio_closed|slot_blocked/i.test(message)) {
       return { success: false, error: 'That time is no longer available. Choose a future time during studio hours.' }
     }

@@ -13,6 +13,7 @@ export interface UpdateSettingsParams {
   bankName: string            // empty string = unset
   accountName: string         // empty string = unset
   accountNumber: string       // empty string = unset
+  termsAndConditions: string  // empty string = none set
 }
 
 export async function updateSettings(
@@ -24,7 +25,7 @@ export async function updateSettings(
   } = await supabase.auth.getUser()
   if (!user || user.app_metadata?.role !== 'admin') return { success: false, error: 'Unauthorized' }
 
-  const { operatingOpen, operatingClose, holdWindowMinutes, defaultDepositPct, reminderEnabled, ratePerHour, gcashQrUrl, bankName, accountName, accountNumber } = params
+  const { operatingOpen, operatingClose, holdWindowMinutes, defaultDepositPct, reminderEnabled, ratePerHour, gcashQrUrl, bankName, accountName, accountNumber, termsAndConditions } = params
 
   const timeOk = /^\d{2}:\d{2}$/.test(operatingOpen) && /^\d{2}:\d{2}$/.test(operatingClose)
   if (!timeOk) return { success: false, error: 'Invalid time format.' }
@@ -53,6 +54,7 @@ export async function updateSettings(
       bank_name: bankName.trim(),
       account_name: accountName.trim(),
       account_number: accountNumber.trim(),
+      terms_and_conditions: termsAndConditions.trim(),
     },
   })
   if (error) return { success: false, error: error.message }

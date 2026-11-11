@@ -11,7 +11,7 @@ const client = { rpc }
 const baseParams: CreateRecurringBookingParams = {
   date: '2030-08-03', start: '10:00', end: '12:00', service: 'rehearsal',
   payment: 'deposit', contactName: 'Jane Doe', email: 'jane@example.com',
-  phone: '09171234567', bandName: 'The Band', occurrenceCount: 4,
+  phone: '09171234567', bandName: 'The Band', occurrenceCount: 4, termsAccepted: true,
 }
 
 describe('createRecurringBooking atomic RPC boundary', () => {

@@ -11,7 +11,7 @@ const client = { rpc }
 const baseParams: CreateBookingParams = {
   date: '2030-08-01', start: '10:00', end: '12:00', service: 'rehearsal',
   payment: 'deposit', contactName: 'Jane Doe', email: 'jane@example.com',
-  phone: '09171234567', bandName: 'The Band',
+  phone: '09171234567', bandName: 'The Band', termsAccepted: true,
 }
 
 describe('createBooking atomic RPC boundary', () => {
