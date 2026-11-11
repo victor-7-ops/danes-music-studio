@@ -37,6 +37,35 @@ export async function sendTelegramMessage(
   }
 }
 
+export async function sendTelegramPhoto(
+  photoUrl: string,
+  caption: string,
+  replyMarkup?: TelegramInlineKeyboard
+): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN
+  const chatId = process.env.TELEGRAM_CHAT_ID
+  if (!token || !chatId) return
+
+  try {
+    const res = await fetch(`${API_BASE}/bot${token}/sendPhoto`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        photo: photoUrl,
+        caption,
+        parse_mode: 'HTML',
+        ...(replyMarkup ? { reply_markup: { inline_keyboard: replyMarkup } } : {}),
+      }),
+    })
+    if (!res.ok) {
+      console.error('Telegram sendPhoto failed:', res.status, await res.text())
+    }
+  } catch (e) {
+    console.error('Telegram sendPhoto failed:', e)
+  }
+}
+
 export async function answerTelegramCallback(callbackQueryId: string, text?: string): Promise<void> {
   const token = process.env.TELEGRAM_BOT_TOKEN
   if (!token) return

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/serviceClient'
-import { sendTelegramMessage, paymentProofUploadedMessage, bookingActionKeyboard } from '@/lib/telegram'
+import { sendTelegramMessage, sendTelegramPhoto, paymentProofUploadedMessage, bookingActionKeyboard } from '@/lib/telegram'
 import { isValidImageMagicBytes } from '@/lib/imageMagicBytes'
 import { InMemoryRateLimiter } from '@/lib/lookupPreviousBooking'
 
@@ -109,24 +109,32 @@ export async function POST(req: NextRequest) {
   const svc = booking.service_types as { name: string } | { name: string }[] | null
   const serviceTypeName = (Array.isArray(svc) ? svc[0]?.name : svc?.name) ?? 'Rehearsal'
 
-  void sendTelegramMessage(
-    paymentProofUploadedMessage([
-      {
-        id: booking.id,
-        confirmationCode: booking.confirmation_code,
-        customerName: booking.customer_name,
-        bandName: booking.band_name,
-        serviceTypeName,
-        paymentMethod: booking.payment_method,
-        depositAmount: booking.deposit_amount,
-        amountPaid: booking.amount_paid,
-        totalAmount: booking.total_amount,
-      },
-    ]),
-    bookingActionKeyboard(booking.id)
-  ).catch((err: unknown) => {
-    console.error('[telegram] proof uploaded alert failed', err)
-  })
+  const caption = paymentProofUploadedMessage([
+    {
+      id: booking.id,
+      confirmationCode: booking.confirmation_code,
+      customerName: booking.customer_name,
+      bandName: booking.band_name,
+      serviceTypeName,
+      paymentMethod: booking.payment_method,
+      depositAmount: booking.deposit_amount,
+      amountPaid: booking.amount_paid,
+      totalAmount: booking.total_amount,
+    },
+  ])
+  const keyboard = bookingActionKeyboard(booking.id)
+
+  void supabase.storage
+    .from('payment-proofs')
+    .createSignedUrl(path, 600)
+    .then(({ data: signed }) =>
+      signed?.signedUrl
+        ? sendTelegramPhoto(signed.signedUrl, caption, keyboard)
+        : sendTelegramMessage(caption, keyboard)
+    )
+    .catch((err: unknown) => {
+      console.error('[telegram] proof uploaded alert failed', err)
+    })
 
   return NextResponse.json({ ok: true })
 }
