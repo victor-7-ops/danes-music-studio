@@ -62,7 +62,7 @@ export async function applyPaymentConfirmation(
     warnings.push('Confirmation email failed. Retry from the booking actions.')
   })
 
-  void sendTelegramMessage(
+  await sendTelegramMessage(
     paymentConfirmedMessage({
       confirmationCode: updated.confirmation_code,
       customerName: updated.customer_name,
